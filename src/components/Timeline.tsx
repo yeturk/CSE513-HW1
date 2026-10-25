@@ -24,11 +24,16 @@ export function Timeline({ result, step, onStep, selectedProcessId, onSelectProc
   }, []);
   useLayoutEffect(() => {
     const scroll = scrollRef.current!;
+    // Zoom/view changes commit before ResizeObserver necessarily delivers its
+    // next notification. Use the committed layout for scroll positioning.
+    const width = canvasRef.current!.getBoundingClientRect().width;
+    if (width !== canvasWidth) setCanvasWidth(width);
     const gutter = view === 'lanes' ? 76 : 0;
-    const x = gutter + decision.start / result.finishTime * Math.max(0, canvasWidth - gutter);
+    const x = gutter + decision.start / result.finishTime * Math.max(0, width - gutter);
+    const leftInset = gutter + 40;
     if (zoom === 1) scroll.scrollLeft = 0;
-    else if (x < scroll.scrollLeft || x > scroll.scrollLeft + scroll.clientWidth - 40) {
-      scroll.scrollLeft = Math.max(0, x - 40);
+    else if (x < scroll.scrollLeft + leftInset || x > scroll.scrollLeft + scroll.clientWidth - 40) {
+      scroll.scrollLeft = Math.max(0, x - leftInset);
     }
   }, [decision.start, result.finishTime, canvasWidth, zoom, view]);
   const laneGutter = view === 'lanes' ? 76 : 0;

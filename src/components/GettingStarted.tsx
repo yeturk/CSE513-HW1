@@ -6,8 +6,8 @@ export function needsTour() {
 }
 const steps = [
   { title: 'Your first CPU scheduling experiment', description: 'A process arrives, waits for the CPU, runs, and finishes. This lab lets you see every scheduling decision.', note: 'Start with Workload A. All results update as you change an input.', visual: 'processes' },
-  { title: 'Choose who runs next', description: 'FCFS follows arrivals. SJF selects the shortest ready burst. SRTF can interrupt for a shorter remaining time. Round Robin rotates a FIFO queue.', note: 'For Round Robin, quantum is the maximum CPU time allowed in one turn.', visual: 'algorithms' },
-  { title: 'Trace a decision, not just an answer', description: 'Select a Gantt slice or use Previous / Next to inspect the clock, ready candidates, and reason for the choice.', note: 'A wider block means more CPU time. Hatched blocks mean the CPU is idle.', visual: 'timeline' },
+  { title: 'Choose who runs next', description: 'FCFS follows arrivals. SJF selects the shortest ready burst. SRTF can interrupt for a shorter remaining time. Round Robin rotates a FIFO queue.', note: 'Quantum limits each RR turn. Open Rules in the header for selection ties, arrivals at quantum boundaries, and metric formulas.', visual: 'algorithms' },
+  { title: 'One schedule, two views', description: 'CPU rail shows execution in one row. Process lanes separates each process on the same clock. Both show the same single-CPU schedule.', note: 'Select a colored slice or use Previous / Next to inspect the ready queue and decision. Wider blocks mean more CPU time; gaps along a faint lane line mean waiting. Hatched blocks mean idle CPU time.', visual: 'timeline' },
   { title: 'Read, compare, and explain', description: 'Turnaround is total time from arrival to completion. Waiting counts time ready but not running. Response is the wait for first CPU service.', note: 'Compare algorithms on the same workload. A lower waiting time does not always mean a lower response time.', visual: 'metrics' },
 ];
 

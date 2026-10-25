@@ -42,10 +42,43 @@ test('lane time coordinates remain proportional through zoom and idle intervals'
     expect((block!.x-track!.x)/track!.width).toBeCloseTo(2/11,2);
   }
   await page.getByLabel('Decision step',{exact:true}).fill('5');
-  const cursor = await page.locator('.time-cursor').boundingBox();
-  const chart = await page.locator('.timeline-scroll').boundingBox();
-  expect(cursor!.x).toBeGreaterThanOrEqual(chart!.x);
-  expect(cursor!.x).toBeLessThan(chart!.x+chart!.width);
+  await expect(page.locator('.decision-time')).toContainText('t = 10');
+  // Read both rectangles in one frame and wait for layout/scroll effects to settle.
+  // Keep the visibility requirement: a persistently clipped cursor must still fail.
+  await expect.poll(() => page.locator('.timeline-scroll').evaluate(chart => {
+    const cursor = chart.querySelector('.time-cursor')!.getBoundingClientRect();
+    const bounds = chart.getBoundingClientRect();
+    return cursor.left >= bounds.left && cursor.right <= bounds.right;
+  })).toBe(true);
+});
+
+test('zoomed cursor stays visible before delayed resize notifications arrive', async ({ page }) => {
+  // A fast interaction can precede ResizeObserver delivery. Hold only the timeline
+  // notification to reproduce that ordering deterministically on every platform.
+  await page.addInitScript(() => {
+    const NativeObserver = window.ResizeObserver;
+    window.ResizeObserver = class extends NativeObserver {
+      constructor(callback: ResizeObserverCallback) {
+        super((entries, observer) => {
+          if (entries.some(entry => entry.target.classList.contains('timeline-canvas'))) return;
+          callback(entries, observer);
+        });
+      }
+    };
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Process lanes', exact: true }).click();
+  await page.getByRole('button', { name: 'Load workload B', exact: true }).click();
+  await page.getByRole('button', { name: 'Zoom in', exact: true }).click();
+  await page.getByLabel('Decision step', { exact: true }).fill('5');
+  await expect(page.locator('.decision-time')).toContainText('t = 10');
+  await expect.poll(() => page.locator('.timeline-scroll').evaluate(chart => {
+    const cursor = chart.querySelector('.time-cursor')!.getBoundingClientRect();
+    const bounds = chart.getBoundingClientRect();
+    return cursor.left >= bounds.left && cursor.right <= bounds.right;
+  })).toBe(true);
+  await page.getByLabel('Decision step', { exact: true }).fill('0');
+  await expect.poll(() => page.locator('.timeline-scroll').evaluate(chart => chart.scrollLeft)).toBe(0);
 });
 
 test('Rules sits between the guide and theme, explains boundary rules and restores focus', async ({ page }) => {

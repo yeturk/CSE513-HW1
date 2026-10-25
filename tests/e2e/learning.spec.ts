@@ -7,8 +7,12 @@ test('first visit guide supports all steps, keyboard dismissal, persistence and 
   await expect(guide).toContainText('Step 1 of 4');
   await guide.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(guide).toContainText('Step 2 of 4');
+  await expect(guide).toContainText('Open Rules in the header');
   await guide.getByRole('button', { name: 'Next', exact: true }).click();
   await expect(guide).toContainText('Step 3 of 4');
+  await expect(guide).toContainText('CPU rail');
+  await expect(guide).toContainText('Process lanes');
+  await expect(guide).toContainText('same single-CPU schedule');
   await guide.getByRole('button', { name: 'Back', exact: true }).click();
   await expect(guide).toContainText('Step 2 of 4');
   await guide.getByRole('button', { name: 'Next', exact: true }).click();
@@ -27,12 +31,20 @@ test('first visit guide supports all steps, keyboard dismissal, persistence and 
   await expect(page.getByRole('button', { name: 'Getting started', exact: true })).toBeFocused();
 });
 
-test('guide fits a small mobile screen and can be skipped', async ({ page }) => {
+test('every guide step fits a small mobile screen and can be skipped', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await page.goto('/');
   await expect(page.getByRole('dialog')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Skip guide' })).toBeInViewport();
   await expect(page.getByRole('button', { name: 'Next', exact: true })).toBeInViewport();
+  for (let step = 1; step <= 4; step++) {
+    await expect(page.getByRole('dialog')).toContainText(`Step ${step} of 4`);
+    await expect(page.getByRole('button', { name: 'Close guide' })).toBeInViewport();
+    await expect(page.getByRole('button', { name: 'Skip guide' })).toBeInViewport();
+    const next = page.getByRole('button', { name: step === 4 ? 'Start exploring' : 'Next', exact: true });
+    await expect(next).toBeInViewport();
+    if (step < 4) await next.click();
+  }
   await page.screenshot({ path: 'test-results/guide-mobile.png' });
   await page.getByRole('button', { name: 'Skip guide' }).click();
   await expect(page.getByRole('dialog')).toHaveCount(0);

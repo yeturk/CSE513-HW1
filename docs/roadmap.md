@@ -45,7 +45,26 @@ passed, along with TypeScript checking, the production build and verification of
 examples. New browser checks cover view switching, lane proportions, idle rows, Rules keyboard/focus
 behavior and locally loaded Source Sans 3. Desktop and mobile screenshots were inspected in both
 themes. Local browser tests ran on Windows with Microsoft Edge; configuring other OS jobs is not
-evidence of executing those jobs. No current macOS or Linux verification is claimed yet.
+evidence of executing those jobs.
+
+After the student pushed `5f96f6f`, [the three-OS CI run](https://github.com/yeturk/CSE513-HW1/actions/runs/40199282664)
+passed on Ubuntu and Windows. macOS passed unit tests and the build but failed one of 36 browser tests:
+the zoomed lane cursor was outside the measured chart bounds. This is not an all-platform pass.
+
+Local follow-up changes explain both views and Rules in Getting started, check every guide step
+at 320 x 568, and make the cursor test wait for the chosen decision and measure both rectangles
+in one browser evaluation. The visibility requirement is preserved. Four affected scenarios passed
+three repetitions each in Windows Chromium (12 passes); the guide build also passed. These follow-up
+changes are included with the authorized cursor-fix commit. The next design revision awaits the student's Stitch selections.
+
+A deterministic regression that withholds timeline ResizeObserver notifications reproduced an
+offscreen cursor in the old implementation: scrolling used cached canvas width. The correction
+reads committed layout width in the layout effect and includes the sticky lane-label gutter in
+the scroll inset. Returning to the first decision now also returns to the timeline origin.
+The old implementation failed the regression; the correction passed both cursor scenarios three
+times each. Full Windows Chromium verification then passed all 47 unit tests, 37 browser tests,
+TypeScript checking and the production build. This demonstrates the delayed-measurement fix,
+but does not yet establish that it resolves the original macOS CI failure. A new macOS run is required.
 
 The official PDF says the deadline is "To be announced". The instructor's Teams announcement is
 the definitive deadline source; the student reported an approximately eight-hour window on 25 October.
