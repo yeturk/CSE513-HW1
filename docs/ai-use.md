@@ -1,41 +1,54 @@
-# AI kullanım kaydı — taslak
+# AI assistance record - review draft
 
-Bu kayıt teslim raporundaki kısa AI beyanı için kaynak olacak. Öğrenci inceleyip kendi anladığı
-ve doğruladığı çalışmayı yansıttığını onayladıktan sonra rapora aktarılmalı.
+This record supports the final report's AI-use statement. The student must review it and confirm that
+it accurately describes the work and their understanding before submission.
 
-## Kullanılan araçlar
+## Tools and purposes
 
-- **Codex:** Ödev gereksinimlerinin okunması, Türkçe kavram tekrarı, elle çözümde adım adım yönlendirme,
-  öğrencinin metrik hesaplarının kontrolü; React/TypeScript uygulamasının, testlerin ve dokümantasyonun hazırlanması.
-- **Claude Code CLI / frontend-design:** Arayüz için renk, düzen, erişilebilirlik ve etkileşim önerisi.
-  Bu çalıştırmada Claude'a araç kullanımı verilmedi; dosya düzenlemedi veya Git işlemi yapmadı.
-  Skill metni doğrudan tasarım isteğine dahil edildi.
+- **Codex:** assignment review, concept explanations, guided hand-calculation practice, checking the
+  student's metric calculations, React/TypeScript implementation, tests, documentation and PDF draft.
+- **Claude Code CLI / frontend-design:** advice on layout, typography, color, accessibility and interaction.
+  These consultations had no file-editing tools or Git permissions. The skill text was included in the prompt.
 
-## Nasıl kontrol edildi?
+## Verification
 
-- A ve B workload'ları uygulama geliştirilmeden önce öğrenciyle elle çözüldü.
-- Sekiz bağımsız timeline, first start, completion ve ortalama beklentisi unit testlere aktarıldı.
-- Üç ek workload ve SRTF eşitliği / RR sınır sırası gibi uç durumlar ayrıca kontrol edildi.
-- 100 deterministik workload × dört algoritmada invariant kontrolleri uygulandı.
-- TypeScript kontrolü, production build ve gerçek tarayıcı testleri çalıştırıldı.
-- Masaüstü ve mobil screenshot'lar görsel olarak incelendi.
+- Workloads A and B were solved with the student before implementation.
+- Eight prior schedules, first-start/completion times and averages became independent golden tests.
+- Additional workloads cover idle time, ties, preemption and RR boundary ordering.
+- Invariants run on 100 deterministic workloads across all four algorithms.
+- Type checking, production builds and browser tests verify implementation and user flows.
+- Desktop/mobile screenshots and rendered report pages were inspected visually.
+- The report exporter reads prior hand-calculation notes independently of simulate(), compares every
+  interval and process metric with current output, and fails if they disagree.
 
-## Düzeltilen veya reddedilen AI önerisi
+## Corrected or rejected AI suggestions
 
-Claude tasarım brief'inde Workload B için ikinci idle aralığını **5–8** olarak yazdı.
-Elle hesapta P1/P2 toplam işi t=2'den t=6'ya kadar sürdüğü için doğru aralık **6–8**.
-Öneri düzeltilerek uygulama ve testlerde elle doğrulanmış değer kullanıldı.
-Brief'in metrik sütun listesinde first start yoktu; ödev bunu istediği için uygulamaya eklendi.
+An early Claude brief gave Workload B's second idle interval as **5-8**. The early jobs actually
+finish at t=6, so the correct interval is **6-8**. The hand calculation was retained. The same brief
+omitted first start from the metric columns; the assignment requires it, so it was included.
 
-## Testin ortaya çıkardığı gerçek uygulama hatası
+A later consultation suggested breaking ties by arrival and then process ID. The assignment instead
+requires arrival and then **input-list order**. That suggestion was rejected; the Z/A test specifically
+protects against alphabetical ordering. Hiding quantum outside RR was also rejected because the
+comparison panel still needs its RR configuration.
 
-İlk mobil testte 390 px ekranda sonuç alanı 533 px genişledi; sayfa yatay taşıyordu.
-Neden: iç CSS grid'in sütunu min-content boyutunun altına daralamıyordu.
-Sonuç grid'ine `minmax(0,1fr)`, panellere `min-width:0` uygulanarak tablo/Gantt kaydırması
-kendi çerçevesine alındı. Aynı tarayıcı testi tekrar çalıştırılarak düzeltme doğrulandı.
+## Actual implementation bugs exposed by tests
 
-## Açık durum
+The first mobile test measured 533 px of page width in a 390 px viewport. A CSS grid track retained
+its minimum content width. Using minmax(0,1fr), shrinkable panels and internal table/chart scrolling
+fixed it; the same test then passed.
 
-AI'nin kodu yazması, öğrencinin kodun tamamını bağımsız açıklayabildiğini kanıtlamaz.
-Motoru ve testleri birlikte inceleme, q=1/2/4 analizi ve final rapor halen çalışma planındadır.
-Karşılaşılmamış bir algoritma hatası yaşanmış gibi anlatılmamıştır.
+Later, the input table's remove column was narrower than its button plus cell padding, creating an
+unnecessary horizontal scrollbar. Widening that column fixed actual overflow rather than hiding it.
+A test now checks horizontal overflow with both a small and a large number of rows.
+
+A mockup select had an ambiguous accessible label. Explicit labeling corrected the failing interaction
+test. The hover/focus tooltip tests also verify that adding help does not swallow button clicks.
+
+## Student review still required
+
+AI-generated code does not establish that the student can independently explain every part of it.
+The motor, unfamiliar workload tracing, RR q=1/2/4 analysis and final report need student review.
+The additional q=1/q=4 expectations were independently traced with AI assistance and then tested;
+the student is not claimed to have already completed those extra calculations alone.
+No scheduling bug that did not occur is described as a personal debugging experience.

@@ -1,59 +1,90 @@
-# Uygulamanın yapısı
+# Application architecture
 
-## Veri akışı
+## Data flow
 
-ProcessEditor → doğrulama → simulate() → immutable sonuç snapshot'ı → Timeline / Results / Comparison.
+ProcessEditor -> validation -> simulate() -> current result -> Timeline / Results / Comparison.
 
-React UI, scheduling kararı vermez. `src/domain/scheduler.ts` DOM, React ve gerçek saatten bağımsızdır.
-Girdi kopyalanır; orijinal burst korunur. Kalan iş `remaining` alanında azaltılır.
-First start başlangıçta `null`dır; t=0 geçerli olduğundan truthy/falsy kontrolü yapılmaz.
+The React interface does not make scheduling decisions. `src/domain/scheduler.ts` is independent
+of the DOM, React and real time. Inputs are copied; original burst and remaining work are separate.
+First start begins as null: zero is a valid time, so a truthiness check would be incorrect.
 
-## Simülasyon saati
+## Event-driven time
 
-Motor event-driven çalışır: birer saniye gerçek zaman beklemek yerine bir sonraki anlamlı ana atlar.
+The motor jumps directly to meaningful events:
 
-- FCFS/SJF: seçilen işin completion zamanı.
-- SRTF: bir sonraki arrival veya completion; hangisi önceyse.
-- RR: quantum sonu veya completion; hangisi önceyse.
-- Hazır process yoksa: bir sonraki arrival; aradaki süre explicit idle segmentidir.
+- FCFS/SJF: the selected process completes.
+- SRTF: the next arrival or completion, whichever occurs first.
+- RR: the quantum expires or the selected process completes.
+- Empty ready queue: the next arrival, with an explicit idle segment in between.
 
-`[start,end)` aralığı `end-start` CPU birimi verir.
-FCFS/SJF/SRTF'de kesintisiz aynı process aralıkları Gantt için birleştirilir; karar kayıtları korunur.
-RR'de her quantum ayrı segment olarak kalır.
+Intervals are half-open: [start,end) supplies end-start CPU units. Continuous intervals for the same
+process are merged in the FCFS/SJF/SRTF chart, while individual decisions remain available.
+RR preserves every quantum boundary, including consecutive slices for the same process.
 
-## Eşitlik ve kuyruk
+## Ties and ready queues
 
-FCFS arrival, SJF burst ve SRTF remaining ölçütüyle seçim yapar. Eşitlikler arrival ve giriş index'iyle çözülür.
-SRTF'nin çalışanı koruyan eşitlik kuralı genel sıralamadan önce gelir.
-RR gerçek FIFO kuyruğu tutar; aralık boyunca ve tam sınırda gelenleri arrival/index sırasıyla ekler,
-ardından bitmemiş çalışanı sona koyar. Tamamlanan iş tekrar eklenmez.
+FCFS sorts by arrival, SJF by burst and SRTF by remaining work. Selection ties use arrival and then
+original input index. SRTF's keep-running rule on equal remaining time takes precedence over ordinary
+selection tie-breaking. RR uses a FIFO queue: admit arrivals through the boundary in arrival/index
+order, then append the unfinished runner. A completed process is not appended.
 
-Karar görünümündeki adaylar seçimden hemen öncesini gösterir ve seçileni içerir.
-RR dışındaki listeler FIFO sırası değildir; politikaya göre sıralanmış adaylardır.
-Idle kararının aday listesi boştur.
+Decision candidates describe the ready set immediately before selection, including the selected
+process. Only the RR list is a FIFO queue. Other lists are policy-ranked candidates. Idle has no candidates.
 
-## Sonuçların tutarlılığı
+## Result consistency and local state
 
-Taslak input ile son çalıştırılan snapshot ayrı tutulur. Girdi değişirse uyarı gösterilir;
-Gantt, metrikler, process renkleri ve karşılaştırma eski snapshot'a bağlı kalır.
-Yeni çalışma başarılı olduğunda snapshot yenilenir, karar adımı ve karşılaştırma sıfırlanır.
-Hatalı giriş eski sonucu bozmaz. Karşılaştırma RR quantum'unu da son başarılı çalıştırmadan alır.
+The current result is derived with useMemo from process inputs, algorithm and quantum. Valid changes
+recompute immediately; invalid inputs remove stale results. Decision/highlight state is scoped to the
+input key and reset on edits. An open comparison is recalculated too. Invalid RR quantum suppresses
+comparison without suppressing a valid non-RR primary result. JSON export contains only current data.
 
-JSON indirmesi yalnızca son çalışma verilerini ve varsa karşılaştırmayı içerir.
-Backend veya kalıcı sunucu depolaması yoktur; sayfa yenilenince başlangıç örneğine dönülür.
+There is no backend. Reload restores the initial workload, while named saved copies can be selected
+from the library. Browser records are versioned and validated for shape, identifiers, numeric limits
+and algorithm before use. Malformed records are skipped. Storage-write failures never report success.
+Theme preferences use optional localStorage; the initial preference follows the OS. Storage failures
+do not disable the simulator. Changing theme preserves the result, selected decision and highlight.
 
-## Görsel kararlar
+## Timeline presentation
 
-Claude CLI'ya frontend-design skill metni verilerek tasarım danışmanlığı alındı.
-Editör / sonuç alanı ayrımı, ölçülü Gantt, taralı idle, renk + metinle process tanımı,
-sonuçların eskidiğini açıkça gösterme benimsendi. İlk start sütunu gereksinim gereği korundu.
-Yerel Manrope fontu kullanıldı; dışarıdan font isteği yapılmaz.
+CPU rail is a compact single track. Process lanes uses a shared axis and separate rows for processes,
+plus an idle row when needed. Faint lines span arrival to completion; colored blocks are execution;
+uncovered parts of those lines are ready-queue waiting. Rows do not imply multiple CPUs.
 
-## Kontrol noktaları
+Both views consume the same segments and decisions. The switch preserves zoom, selected decision
+and process highlighting. View choice is held in App so it survives workload changes; new inputs
+reset zoom to Fit. Every segment width remains duration / total duration. ResizeObserver measures
+available chart width; crowded tick labels and block text are hidden without deleting boundary marks.
+At high zoom, moving the decision cursor outside the visible range scrolls it into view.
 
-- Bir process'in toplam segment süresi = burst.
-- First start = o process'in ilk segment başlangıcı.
-- Completion = son segment bitişi.
-- Timeline t=0'dan son bitişe kadar boşluksuz; boş süreler idle olarak modellenir.
-- Ortalama turnaround − ortalama waiting = ortalama burst.
-- Algoritmanın doğru seçimi bağımsız golden workload'larla sınanır.
+Shared process highlighting connects all slices to the process metrics row. Decision selection and
+process highlighting are distinct, so a reader may inspect one event while highlighting another job.
+
+## Responsive layout, font and help
+
+The workspace uses the available width rather than a fixed maximum. Below 960 px, settings and
+results stack; from 1800 px, metrics and comparison can sit side by side. A mobile link jumps to results.
+Averages follow the chart. Tables and zoomed charts scroll within their own containers.
+
+Source Sans 3 is bundled through Fontsource as variable WOFF2 assets. The same font files are served
+on Windows, macOS and Linux instead of relying on an OS-installed font. This avoids font substitution;
+platform rasterization can still differ. The OFL license is preserved in public/fonts.
+
+The first-use guide and Rules use native dialogs with keyboard focus management, Escape dismissal
+and scrollable content. Rules appears between Getting started and the theme controls. ControlTooltip
+uses one Radix provider and portaled content, preserving trigger DOM nodes and supporting disabled
+controls, keyboard focus and viewport collision handling. No essential rule exists only in a tooltip.
+
+Chromium scrollbars use an 8 px gutter and a 4 px visible thumb. A separate support condition applies
+standard thin scrollbars to Firefox without overriding Chromium pseudo-element styling. The input
+remove column includes its button and cell padding, avoiding unnecessary horizontal overflow.
+
+## Verification invariants
+
+- A process's total execution duration equals its burst.
+- First start equals its earliest execution interval; completion equals its final endpoint.
+- The timeline is contiguous from zero to completion; idle intervals are explicit.
+- Processes never run before arrival or overlap on the single CPU.
+- Waiting and response are nonnegative; ready work prevents idle time.
+- Average turnaround minus average waiting equals average burst.
+
+Independent schedule expectations check policy correctness in addition to these invariants.

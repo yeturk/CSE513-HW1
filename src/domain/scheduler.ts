@@ -5,31 +5,31 @@ export const LIMITS = { processes: 64, time: 1_000_000, slices: 2_000 };
 
 export function validateInput(inputs: ProcessInput[], algorithm: Algorithm, quantum: number): string[] {
   const errors: string[] = [];
-  if (!ALGORITHMS.includes(algorithm)) errors.push('Geçerli bir algoritma seçin.');
-  if (!inputs.length) errors.push('En az bir process ekleyin.');
-  if (inputs.length > LIMITS.processes) errors.push(`En fazla ${LIMITS.processes} process kullanılabilir.`);
+  if (!ALGORITHMS.includes(algorithm)) errors.push('Choose a valid scheduling algorithm.');
+  if (!inputs.length) errors.push('Add at least one process.');
+  if (inputs.length > LIMITS.processes) errors.push(`Use no more than ${LIMITS.processes} processes.`);
   const ids = new Set<string>();
   for (const [index, process] of inputs.entries()) {
-    const label = `${index + 1}. satır`;
+    const label = `Row ${index + 1}`;
     const id = process.id.trim();
-    if (!id || id.length > 24) errors.push(`${label}: ID, 1–24 karakter olmalı.`);
-    if (ids.has(id)) errors.push(`${label}: "${id}" ID'si tekrar ediyor. Her ID benzersiz olmalı.`);
+    if (!id || id.length > 24) errors.push(`${label}: ID must contain 1–24 characters.`);
+    if (ids.has(id)) errors.push(`${label}: Duplicate ID "${id}". Every ID must be unique.`);
     ids.add(id);
     if (!Number.isSafeInteger(process.arrival) || process.arrival < 0 || process.arrival > LIMITS.time) {
-      errors.push(`${label}: Arrival, 0–${LIMITS.time} arasında bir tam sayı olmalı.`);
+      errors.push(`${label}: Arrival must be an integer from 0 to ${LIMITS.time}.`);
     }
     if (!Number.isSafeInteger(process.burst) || process.burst <= 0 || process.burst > LIMITS.time) {
-      errors.push(`${label}: Burst, 1–${LIMITS.time} arasında bir tam sayı olmalı.`);
+      errors.push(`${label}: Burst must be an integer from 1 to ${LIMITS.time}.`);
     }
   }
   if (algorithm === 'RR' && (!Number.isSafeInteger(quantum) || quantum <= 0 || quantum > LIMITS.time)) {
-    errors.push(`Quantum, 1–${LIMITS.time} arasında bir tam sayı olmalı.`);
+    errors.push(`Quantum must be an integer from 1 to ${LIMITS.time}.`);
   }
   if (!errors.length) {
     const upperBound = Math.max(...inputs.map(p => p.arrival)) + inputs.reduce((sum, p) => sum + p.burst, 0);
-    if (upperBound > LIMITS.time) errors.push(`En büyük arrival + toplam burst en fazla ${LIMITS.time} olabilir.`);
+    if (upperBound > LIMITS.time) errors.push(`Maximum arrival + total burst must not exceed ${LIMITS.time}.`);
     if (algorithm === 'RR' && inputs.reduce((sum, p) => sum + Math.ceil(p.burst / quantum), 0) > LIMITS.slices) {
-      errors.push(`Bu quantum ${LIMITS.slices} dilim sınırını aşıyor. Quantum'u artırın veya burst'leri azaltın.`);
+      errors.push(`This quantum exceeds the ${LIMITS.slices}-slice limit. Increase the quantum or reduce burst times.`);
     }
   }
   return errors;
@@ -83,7 +83,7 @@ export function simulate(inputs: ProcessInput[], algorithm: Algorithm, quantum =
     if (!ready.length) {
       const next = pending[arrivalIndex].arrival;
       record({ processId: null, start: clock, end: next, candidates: [],
-        explanation: `Hazır process yok. Sonraki geliş t = ${next}.`, outcome: 'CPU idle.' });
+        explanation: `No process is ready. The next arrival is at t = ${next}.`, outcome: 'CPU idle.' });
       clock = next;
       current = null;
       continue;
@@ -101,18 +101,18 @@ export function simulate(inputs: ProcessInput[], algorithm: Algorithm, quantum =
       const hasEqualWaiter = ready.some(p => p !== selected && p.remaining === selected.remaining);
       explanation = current === selected
         ? hasEqualWaiter
-          ? `${selected.id} devam eder: kalan süre eşit. Eşitlikte preemption yapılmaz.`
-          : `${selected.id} devam eder: daha kısa kalan süreye sahip hazır process yok.`
+          ? `${selected.id} continues: remaining times are equal. A tie does not cause preemption.`
+          : `${selected.id} continues: no ready process has a shorter remaining time.`
         : current && current.remaining > 0
-          ? `${selected.id} seçildi: ${selected.remaining} < ${current.remaining}. ${current.id} kesildi (preemption).`
-          : `${selected.id} seçildi: en kısa kalan süre ${selected.remaining}. Eşitlikte arrival, sonra giriş sırası kullanılır.`;
+          ? `${selected.id} is selected: ${selected.remaining} < ${current.remaining}. ${current.id} is preempted.`
+          : `${selected.id} is selected: shortest remaining time (${selected.remaining}). Ties use arrival, then input order.`;
     } else if (algorithm === 'RR') {
       queue.shift();
-      explanation = `${selected.id}, FIFO kuyruğunun başında. En fazla ${quantum} birim çalışır.`;
+      explanation = `${selected.id} is at the front of the FIFO queue. It runs for up to ${quantum} time units.`;
     } else {
       explanation = algorithm === 'FCFS'
-        ? `${selected.id} seçildi: hazır process'ler arasında en erken arrival. Eşitlikte giriş sırası kullanılır.`
-        : `${selected.id} seçildi: hazır process'ler arasında en kısa burst (${selected.burst}). Eşitlikte arrival, sonra giriş sırası kullanılır.`;
+        ? `${selected.id} is selected: earliest arrival among ready processes. Ties use input order.`
+        : `${selected.id} is selected: shortest ready burst (${selected.burst}). Ties use arrival, then input order.`;
     }
 
     const start = clock;
@@ -133,10 +133,10 @@ export function simulate(inputs: ProcessInput[], algorithm: Algorithm, quantum =
     if (algorithm === 'RR' && selected.remaining > 0) queue.push(selected);
     record({ processId: selected.id, start, end: clock, candidates, explanation,
       outcome: selected.remaining === 0
-        ? `t = ${clock}: ${selected.id} tamamlandı.`
+        ? `t = ${clock}: ${selected.id} completes.`
         : algorithm === 'RR'
-          ? `t = ${clock}: quantum doldu; ${selected.remaining} birim kaldı. Gelenler önce, ${selected.id} sonra kuyruğa eklenir.`
-          : `t = ${clock}: yeni geliş var; ${selected.id} için ${selected.remaining} birim kaldı.` });
+          ? `t = ${clock}: quantum expires with ${selected.remaining} units left. Arrivals join the queue before ${selected.id} returns to the tail.`
+          : `t = ${clock}: a new process arrives; ${selected.id} has ${selected.remaining} units remaining.` });
     current = selected.remaining > 0 ? selected : null;
   }
 

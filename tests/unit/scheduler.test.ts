@@ -67,6 +67,27 @@ describe('eight hand-calculated assignment examples', () => {
 });
 
 describe('additional workloads and scheduling boundaries', () => {
+  it('matches the student screenshot with P5 arriving at 5 for a 3-unit burst', () => {
+    const result = simulate([...WORKLOADS.A, { id: 'P5', arrival: 5, burst: 3 }], 'RR', 2);
+    expect(result.segments.map(s => [s.processId,s.start,s.end])).toEqual([
+      ['P1',0,2],['P2',2,4],['P3',4,6],['P1',6,8],['P4',8,9],['P2',9,11],['P5',11,13],['P1',13,15],['P5',15,16],['P1',16,18],
+    ]);
+    expect(result.processes.map(p => [p.firstStart,p.completion])).toEqual([[0,18],[2,11],[4,6],[8,9],[11,16]]);
+    expect(result.averages).toEqual({ turnaround: 9.6, waiting: 6, response: 2.6 });
+    assertInvariants(result);
+  });
+  it('Workload A RR q=1 matches an independently traced FIFO schedule', () => {
+    const r = simulate(WORKLOADS.A, 'RR', 1);
+    expect(r.segments.map(s => s.processId)).toEqual(['P1','P2','P1','P3','P2','P1','P4','P3','P2','P1','P2','P1','P1','P1','P1']);
+    expect(r.processes.map(p => [p.firstStart, p.completion, p.turnaround, p.waiting, p.response])).toEqual([[0,15,15,7,0],[1,11,10,6,0],[3,8,6,4,1],[6,7,3,2,2]]);
+    expect(r.averages).toEqual({ turnaround: 8.5, waiting: 4.75, response: .75 });
+  });
+  it('Workload A RR q=4 admits boundary arrivals before requeueing P1', () => {
+    const r = simulate(WORKLOADS.A, 'RR', 4);
+    expect(r.segments.map(s => [s.processId,s.start,s.end])).toEqual([['P1',0,4],['P2',4,8],['P3',8,10],['P4',10,11],['P1',11,15]]);
+    expect(r.processes.map(p => [p.firstStart,p.completion])).toEqual([[0,15],[4,8],[8,10],[10,11]]);
+    expect(r.averages).toEqual({ turnaround: 9.25, waiting: 5.5, response: 3.75 });
+  });
   it('initial and internal idle intervals', () => {
     const input = [{ id: 'X', arrival: 3, burst: 1 }, { id: 'Y', arrival: 7, burst: 2 }];
     for (const algorithm of ALGORITHMS) {
@@ -87,7 +108,7 @@ describe('additional workloads and scheduling boundaries', () => {
   it('SRTF keeps the running job on equal remaining time', () => {
     const result = simulate([{ id: 'Z', arrival: 0, burst: 2 }, { id: 'A', arrival: 1, burst: 1 }], 'SRTF');
     expect(result.segments.map(s => [s.processId,s.start,s.end])).toEqual([['Z',0,2],['A',2,3]]);
-    expect(result.decisions[1].explanation).toContain('Eşitlikte preemption yapılmaz');
+    expect(result.decisions[1].explanation).toContain('A tie does not cause preemption');
   });
   it('RR enqueues boundary arrivals before the unfinished runner', () => {
     const result = simulate([{ id: 'P1', arrival: 0, burst: 4 }, { id: 'P2', arrival: 2, burst: 1 },
@@ -131,10 +152,10 @@ describe('input validation', () => {
   it('rejects empty workload and duplicate or blank IDs', () => {
     expect(validateInput([], 'FCFS', 2)).not.toHaveLength(0);
     expect(() => simulate([{ id: ' ', arrival: 0, burst: 1 }], 'FCFS')).toThrow('ID');
-    expect(() => simulate([{ id: 'X', arrival: 0, burst: 1 }, { id: ' X ', arrival: 1, burst: 2 }], 'FCFS')).toThrow('tekrar');
+    expect(() => simulate([{ id: 'X', arrival: 0, burst: 1 }, { id: ' X ', arrival: 1, burst: 2 }], 'FCFS')).toThrow('Duplicate');
   });
   it('bounds RR output size instead of blocking the browser', () => {
-    expect(() => simulate([{ id: 'P', arrival: 0, burst: 2001 }], 'RR', 1)).toThrow('dilim');
+    expect(() => simulate([{ id: 'P', arrival: 0, burst: 2001 }], 'RR', 1)).toThrow('slice');
     expect(simulate([{ id: 'P', arrival: 0, burst: 900000 }], 'FCFS').finishTime).toBe(900000);
   });
 });

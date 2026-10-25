@@ -13,3 +13,6 @@ Thumbs.db
 /Slides/
 /CSE513-Assignment-1.pdf
 /.tools/
+# Local submission artifacts can contain student details; never publish them.
+/output/
+/.submission/
