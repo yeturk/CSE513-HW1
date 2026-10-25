@@ -24,7 +24,7 @@
 - [ ] Student reviews RR q=1/2/4 analysis, additional cases, six report answers and the AI statement.
 - [ ] Student approves the final design and report text.
 - [x] Commit and push of the selected Inspector, screenshot requests and review fixes are authorized.
-- [ ] Website publication is approved separately; a source push does not deploy it.
+- [x] Website publication was explicitly authorized after the random-process update.
 - [ ] Current commit passes the configured Windows/macOS/Ubuntu CI matrix.
 - [ ] A working public website is deployed and tested without signing in.
 - [ ] Final PDF has the live link directly below the heading and local-only student details.
@@ -92,6 +92,13 @@ The authorized source changes were committed and pushed to dev as `714177b`. The
 triggered [verification run](https://github.com/yeturk/CSE513-HW1/actions/runs/40201756244) checks this
 revision. Check the run conclusion before treating it as cross-platform evidence. Website publication
 remains a separate pending step.
+
+Random-process release: each click adds one editable job, with arrival in 0..floor(1.5 x max arrival)
+and burst in 1..2 x max burst. Empty workloads, invalid input, unique IDs and simulator capacity have
+explicit handling. Getting started and README explain the behavior. Local verification passed 62
+unit tests, 46 browser tests and the production build. The anonymous-release verification script
+passed against the local server, comparing all eight independent A/B schedules and tables.
+The new CI and Pages workflow results must be checked for this release before treating it as live.
 
 The official PDF says the deadline is "To be announced". The instructor's Teams announcement is
 the definitive deadline source; the student reported an approximately eight-hour window on 25 October.

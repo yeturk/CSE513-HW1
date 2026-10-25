@@ -4,9 +4,10 @@ An interactive CPU scheduling lab built with React, TypeScript and Vite. Compare
 non-preemptive SJF, SRTF and Round Robin, inspect every decision, and check per-process metrics.
 
 **Repository:** [yeturk/CSE513-HW1](https://github.com/yeturk/CSE513-HW1), development branch `dev`.
-**Delivery status:** the application and report review draft are available locally. Public deployment,
-the live website link, student details and final report review are still pending. A source repository
-link does not replace the required working website address.
+**Website:** [Scheduling Lab](https://yeturk.github.io/CSE513-HW1/).
+Publication uses the manual Pages workflow; its successful run and an anonymous browser check
+establish release availability. Student details and final report review are separate delivery steps.
+A source repository link does not replace the required working website address.
 
 ## Quick start
 
@@ -55,6 +56,13 @@ it does not change scheduling or process colors. Equal values retain their input
 The **Context switches** card counts direct handoffs between different processes. Initial dispatch,
 transitions to/from idle, and consecutive slices of the same process do not count. Every switch
 costs zero time units in this model. Workload A with RR q=2 has six switches, although it has eight slices.
+
+**Add Random Process** adds one editable process per click with an unused ID. Arrival is an integer
+from 0 to floor(1.5 × the current maximum arrival); burst is from 1 to 2 × the current maximum burst,
+both inclusive. Each click recomputes the ranges. Empty workloads start with arrival 0 and burst 1–2;
+all-zero arrivals stay zero. The tooltip shows current ranges. Time and RR slice limits can narrow
+them; invalid inputs or exhausted capacity disable random addition. Save or export a generated workload
+if you want to reproduce it later.
 
 ### Workloads and local saves
 
@@ -150,6 +158,11 @@ The public repository contains the source. GitHub Pages can host the built appli
 on a normal push. Enable Settings > Pages > GitHub Actions, then dispatch **Publish website (manual)**
 after the release is approved. Verify the returned website address without signing in.
 Vite's `base: './'` generates relative assets suitable for a repository subpath.
+
+After publishing, run `node scripts/export-report-data.mjs`, then
+`node scripts/verify-live.mjs <website-url>`. This opens an anonymous browser, checks all eight
+reference schedules and metric tables, and exercises random addition, mobile layout and asset loading.
+If a core flow fails, stop delivery and redeploy the last verified revision with the manual workflow.
 
 Course PDFs and slides remain local and ignored. Student numbers and other private information
 must not appear on the public website or in committed sources.

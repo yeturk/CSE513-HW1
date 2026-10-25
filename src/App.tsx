@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ALGORITHMS } from './domain/types';
 import type { Algorithm } from './domain/types';
 import { simulate, validateInput } from './domain/scheduler';
+import { createRandomProcess, randomProcessRanges } from './domain/randomProcess';
 import { PRESETS, WORKLOADS } from './domain/workloads';
 import { decodeSavedWorkloads, MAX_SAVED_WORKLOADS, SAVED_WORKLOADS_KEY } from './domain/savedWorkloads';
 import type { SavedWorkload } from './domain/savedWorkloads';
@@ -51,6 +52,7 @@ export default function App() {
   // Results are derived from the current inputs, never from an older run.
   const inputs = useMemo(() => rows.map(p => ({ id: p.id, arrival: asNumber(p.arrival), burst: asNumber(p.burst) })), [rows]);
   const q = asNumber(quantum);
+  const randomRanges = randomProcessRanges(inputs, algorithm, q);
   const simulation = useMemo(() => {
     const errors = validateInput(inputs, algorithm, q);
     return { errors, result: errors.length ? null : simulate(inputs, algorithm, q) };
@@ -124,6 +126,12 @@ export default function App() {
       <ol className="learning-path" aria-label="How to use this lab"><li><b>1</b> Set up</li><li><b>2</b> Trace</li><li><b>3</b> Compare</li></ol></div>
     <main className="app-layout">
       <ProcessEditor rows={rows} algorithm={algorithm} quantum={quantum} errors={errors} workload={workload}
+        randomRanges={randomRanges} onAddRandom={() => {
+          const generated = createRandomProcess(inputs, algorithm, q);
+          if (!generated) return;
+          const row = { key: nextKey.current++, id: generated.id, arrival: String(generated.arrival), burst: String(generated.burst) };
+          resetExploration(); setPresetId(''); setRows(old => [...old, row]); setWorkload('Custom workload');
+        }}
         presetId={presetId} savedWorkloads={savedWorkloads} saveMessage={saveMessage} onSave={saveWorkload} onDeleteSaved={removeSavedWorkload}
         onField={(key, field, value) => { resetExploration(); setPresetId(''); setRows(old => old.map(p => p.key === key ? { ...p, [field]: value } : p)); setWorkload('Custom workload'); }}
         onRemove={key => { resetExploration(); setPresetId(''); setRows(old => old.filter(p => p.key !== key)); setWorkload('Custom workload'); }}

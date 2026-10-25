@@ -27,6 +27,8 @@ interface Props {
   onField: (key: number, field: 'id' | 'arrival' | 'burst', value: string) => void;
   onRemove: (key: number) => void;
   onAdd: () => void;
+  onAddRandom: () => void;
+  randomRanges: { arrivalMax: number; burstMax: number } | null;
   onAlgorithm: (algorithm: Algorithm) => void;
   onQuantum: (value: string) => void;
   onLoad: (name: string) => void;
@@ -65,7 +67,14 @@ export function ProcessEditor(props: Props) {
             onClick={() => props.onRemove(row.key)}>×</button></ControlTooltip></td>
         </tr>)}</tbody>
       </table></div>
-      <button type="button" className="add-button" disabled={props.rows.length >= 64} onClick={props.onAdd}>＋ Add process</button>
+      <div className="add-process-actions">
+        <button type="button" className="add-button" disabled={props.rows.length >= 64} onClick={props.onAdd}>＋ Add process</button>
+        <ControlTooltip content={props.randomRanges
+          ? `Add one process: arrival 0–${props.randomRanges.arrivalMax}, burst 1–${props.randomRanges.burstMax} (inclusive integers). Ranges follow the current maxima, capped by simulation limits.`
+          : 'Fix invalid inputs or free capacity within the process, time and RR slice limits to add a random process.'}>
+          <button type="button" className="add-button random-add-button" aria-label="Add Random Process" disabled={!props.randomRanges} onClick={props.onAddRandom}>Add Random Process</button>
+        </ControlTooltip>
+      </div>
       <details className="save-workload"><summary>Save or manage workloads</summary><label htmlFor="workload-name">Name this workload</label>
         <div className="save-row"><input id="workload-name" value={saveName} maxLength={48} placeholder="e.g. My exam practice" onChange={e => setSaveName(e.target.value)} />
           <button type="button" className="secondary-button" onClick={() => { if (props.onSave(saveName)) setSaveName(''); }}>Save copy</button></div>

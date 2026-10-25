@@ -97,6 +97,10 @@ select { width: 100%; min-width: 0; padding: 10px; font-weight: 700; }
 .help-tooltip-trigger { display: inline-grid; place-items: center; width: 16px; height: 16px; padding: 0; border: 1px solid var(--input-line); border-radius: 50%; background: transparent; color: var(--muted); font-size: 10px; font-weight: 600; vertical-align: middle; }
 .remove-button:hover { background: var(--error-bg); color: var(--error-ink); }
 .add-button { width: 100%; border: 1px dashed var(--input-line); border-radius: 7px; background: var(--subtle); padding: 9px; font-size: 13px; font-weight: 750; margin-top: 9px; }
+.add-process-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
+.add-process-actions > * { flex: 1 1 125px; min-width: 0; }
+.add-process-actions .add-button { margin-top: 0; padding: 9px 5px; }
+.random-add-button { border-style: solid; color: var(--action); }
 .save-workload { margin-top: 12px; font-size: 13px; color: var(--muted); }
 .save-workload summary { cursor: pointer; font-weight: 650; }
 .save-workload label { display: block; margin: 12px 0 6px; }

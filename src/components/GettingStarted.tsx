@@ -5,10 +5,10 @@ export function needsTour() {
   try { return localStorage.getItem(TOUR_KEY) !== 'seen'; } catch { return false; }
 }
 const steps = [
-  { title: 'Your first CPU scheduling experiment', description: 'A process arrives, waits for the CPU, runs, and finishes. This lab lets you see every scheduling decision.', note: 'Start with Workload A. All results update as you change an input.', visual: 'processes' },
+  { title: 'Your first CPU scheduling experiment', description: 'Start with Workload A, edit a row, or choose Add Random Process to add one job at a time. All results update automatically.', note: 'Random arrival: 0 to 1.5 × the current maximum, rounded down. Random burst: 1 to 2 × the current maximum. Bounds include both ends and respect simulation limits. An empty list starts with arrival 0 and burst 1–2.', visual: 'processes' },
   { title: 'Choose who runs next', description: 'FCFS follows arrivals. SJF selects the shortest ready burst. SRTF can interrupt for a shorter remaining time. Round Robin rotates a FIFO queue.', note: 'Quantum limits each RR turn. Open Rules in the header for selection ties, arrivals at quantum boundaries, and metric formulas.', visual: 'algorithms' },
   { title: 'One schedule, two views', description: 'CPU rail shows execution in one row. Process lanes separates each process on the same clock. Both show the same single-CPU schedule.', note: 'Select a colored slice or use Previous / Next to inspect the ready queue and decision. Wider blocks mean more CPU time; gaps along a faint lane line mean waiting. Hatched blocks mean idle CPU time.', visual: 'timeline' },
-  { title: 'Read, compare, and explain', description: 'Turnaround is total time from arrival to completion. Waiting counts time ready but not running. Response is the wait for first CPU service.', note: 'Compare algorithms on the same workload. A lower waiting time does not always mean a lower response time.', visual: 'metrics' },
+  { title: 'Read, compare, and explain', description: 'Turnaround is total time from arrival to completion. Waiting counts time ready but not running. Response is the wait for first CPU service.', note: 'Sort metrics by clicking a column; Restore input order resets the table. Context switches count direct changes between different processes and cost zero time here. Compare algorithms on the same workload, then save a named copy or export results to keep your experiment.', visual: 'metrics' },
 ];
 
 export function GettingStarted({ onClose }: { onClose: () => void }) {
