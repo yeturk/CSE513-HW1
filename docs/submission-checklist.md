@@ -19,7 +19,7 @@ before using the simulator; those calculations can then be typeset as tables and
 | Three additional tests with expected results | Idle, ties and preemption; additional-tests.md and unit tests |
 | Five required invariants | 100 deterministic workloads across all four algorithms |
 | Locally runnable source and README | pnpm install / dev / test / build |
-| Public working website | Still pending; required before submission |
+| Public working website | [Scheduling Lab](https://yeturk.github.io/CSE513-HW1/), anonymous browser verification completed |
 
 Extras include light/dark themes, full-width responsive layout, a first-use guide, Rules reference,
 decision tracing, ready candidates, process highlighting, six presets, local named saves and JSON export.
@@ -67,11 +67,11 @@ ignored by Git. It is not ready for submission until the following gates are sat
 - [ ] Student has reviewed the implemented design and report text.
 - [x] Current source, tests and English documentation are included in the local dev commit.
 - [x] The student authorized commit/push; source changes were pushed to dev as `714177b`.
-- [ ] CI has passed for the current commit; distinguish results for each OS.
-- [ ] Website is published and accessible without signing in.
-- [ ] A/B examples and asset loading are checked at the actual public address.
-- [ ] The report's first-page clickable URL matches the verified live address.
-- [ ] Name/student number appear only in the local PDF, not public code or the website.
+- [x] Published application commit `e82fbe5` passed Windows, macOS and Ubuntu CI; see roadmap evidence.
+- [x] Website is published and accessible without signing in.
+- [x] All eight A/B schedules and metric tables, mobile width and asset loading passed at the public address.
+- [x] The local report's first-page clickable URL matches the verified live address.
+- [x] Student details are stored only in ignored local metadata and the generated PDF.
 - [ ] Draft/pending text is removed and the final PDF is visually reviewed.
 - [ ] Student uploads the PDF to Microsoft Teams. An accessible repo link in the PDF replaces a ZIP.
 

@@ -25,9 +25,9 @@
 - [ ] Student approves the final design and report text.
 - [x] Commit and push of the selected Inspector, screenshot requests and review fixes are authorized.
 - [x] Website publication was explicitly authorized after the random-process update.
-- [ ] Current commit passes the configured Windows/macOS/Ubuntu CI matrix.
-- [ ] A working public website is deployed and tested without signing in.
-- [ ] Final PDF has the live link directly below the heading and local-only student details.
+- [x] Published application commit `e82fbe5` passes Windows/macOS/Ubuntu CI.
+- [x] A working public website is deployed and tested without signing in.
+- [x] The PDF review draft has the live link directly below the heading and local-only student details.
 - [ ] Final PDF is visually checked and uploaded to Teams by the student.
 
 ## Evidence and its limits
@@ -99,6 +99,19 @@ explicit handling. Getting started and README explain the behavior. Local verifi
 unit tests, 46 browser tests and the production build. The anonymous-release verification script
 passed against the local server, comparing all eight independent A/B schedules and tables.
 The new CI and Pages workflow results must be checked for this release before treating it as live.
+
+Release evidence for `e82fbe5`: [CI run, attempt 2](https://github.com/yeturk/CSE513-HW1/actions/runs/40202772273)
+passed on all three operating systems with 62 unit and 46 browser tests. The first Windows attempt
+had one blank-page timeout: its trace recorded Chromium `ERR_NO_BUFFER_SPACE` when loading
+`src/main.tsx`. Only that failed OS job was rerun, without changing code or relaxing assertions;
+all 46 scenarios then passed. Ubuntu and macOS passed on the first attempt.
+
+[Pages publication](https://github.com/yeturk/CSE513-HW1/actions/runs/40203603300) succeeded for the
+same commit. An anonymous browser checked https://yeturk.github.io/CSE513-HW1/: every A/B schedule
+and per-process metric table matched the independent references. Random addition, both timeline
+views, dark theme, mobile width, bundled fonts and asset responses passed. The production build
+also passed the same check locally. This is browser/software evidence, not a test of Ubuntu's actual
+kernel scheduler. Student report review and final Teams submission remain pending.
 
 The official PDF says the deadline is "To be announced". The instructor's Teams announcement is
 the definitive deadline source; the student reported an approximately eight-hour window on 25 October.

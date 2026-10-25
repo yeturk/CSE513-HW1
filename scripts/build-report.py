@@ -107,7 +107,7 @@ else:
     add('Working website: pending deployment - this draft is not ready to submit.', 'Draft')
 add(f'Source repository: <link href="{repo}" color="#244bd8">{repo}</link> (dev branch)')
 add('Student: ' + escape(meta.get('name', 'To be completed')) + '<br/>Student number: ' + escape(meta.get('studentNumber', 'To be completed')))
-add('Review draft: verify the explanations, add the live website address, and complete student details before submission.', 'Draft')
+add('Review draft: read and confirm the explanations and AI-use statement before submission. Check the website link and student details above.', 'Draft')
 add('1. Scope and model', 'Heading2')
 add('Scheduling Lab is a browser-based React and TypeScript simulator for FCFS, non-preemptive SJF, preemptive SRTF, and Round Robin. The model has one CPU, one burst per process, no I/O, and zero context-switch cost. Simulated time is not wall-clock time; this is not an implementation of Ubuntu\'s scheduler.')
 add('The interface supports process creation, editing and removal, a configurable RR quantum, automatic calculation, labeled Gantt intervals including idle time, complete per-process metrics, and comparison of the four algorithms. Workloads A/B and four learning presets are available. A first-use guide, light/dark themes, zoom, decision tracing and browser-local named workloads support exploration.')
