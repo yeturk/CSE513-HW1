@@ -59,20 +59,20 @@ these on paper is not required by the supplied PDF; follow any separate instruct
 5. Six analysis answers, including an actual implementation mistake exposed by a test.
 6. AI-use statement, limitations and reproducibility information.
 
-The local review draft is output/pdf/CSE513-HW1-report-draft.pdf. Both output/ and .submission/ are
-ignored by Git. It is not ready for submission until the following gates are satisfied.
+The final local report is output/pdf/CSE513-HW1-report.pdf. Both output/ and .submission/ are
+ignored by Git. Older draft and CI-preview files are not the submission artifact.
 
 ## Release and submission gates
 
 - [ ] Student has reviewed the implemented design and report text.
 - [x] Current source, tests and English documentation are included in the local dev commit.
-- [x] The student authorized commit/push; source changes were pushed to dev as `714177b`.
+- [x] The student authorized commit/push to dev, including the final report-generator revision.
 - [x] Published application commit `e82fbe5` passed Windows, macOS and Ubuntu CI; see roadmap evidence.
 - [x] Website is published and accessible without signing in.
 - [x] All eight A/B schedules and metric tables, mobile width and asset loading passed at the public address.
 - [x] The local report's first-page clickable URL matches the verified live address.
 - [x] Student details are stored only in ignored local metadata and the generated PDF.
-- [ ] Draft/pending text is removed and the final PDF is visually reviewed.
+- [x] Draft/pending text is removed; the eight-page Calibri PDF was rendered and visually reviewed.
 - [ ] Student uploads the PDF to Microsoft Teams. An accessible repo link in the PDF replaces a ZIP.
 
 The student reported an approximately eight-hour submission window on 25 October 2026. The official

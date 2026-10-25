@@ -67,8 +67,16 @@ Mobile and both-theme rendering and queue/outcome behavior were checked with Pla
 Claude reviewed commit `5f96f6f`. Its cached-width/cursor finding was reproduced with delayed
 ResizeObserver delivery, fixed and verified on Windows, macOS and Ubuntu in commit `127ac66`.
 The browser assertion was also made atomic to avoid comparing rectangles from different frames.
-The subsequent revision gives disabled tooltip triggers explicit button/disabled semantics, centralizes
-the lane gutter dimensions, removes OS-installed font dependencies from PDF generation, and rejects
+The subsequent revision gave disabled tooltip triggers explicit button/disabled semantics, centralized
+the lane gutter dimensions, introduced portable bundled PDF fonts at that stage, and rejected
 missing or mismatched report data. Three additional report examples now have independent expected
 intervals and metrics which the exporter asserts before reporting a match. Negative tests confirm
 that changed inputs or incorrect results cannot silently pass those checks.
+
+The final report revision restores Calibri to match the assignment PDF, using locally licensed
+system fonts or an explicit font directory. CI retains the bundled Vera preview through
+`--portable-font`; font files and the identity-bearing report are not published. A final Claude
+review checked the report and scheduling references. Codex separately compared 13 anonymous
+live-site cases with the report and an independent unit-time scheduler, and audited tracked
+files and reachable Git history for private data. The review led to explicit per-test behavior
+statements, clearer section numbering, updated report documentation and validation before PDF output.

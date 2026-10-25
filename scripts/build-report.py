@@ -1,6 +1,8 @@
-"""Build a local submission draft. Personal metadata lives in ignored .submission/."""
+"""Build the local submission report. Personal metadata lives in ignored .submission/."""
 import json
 import argparse
+from io import BytesIO
+import os
 import reportlab
 from pathlib import Path
 from html import escape
@@ -15,7 +17,11 @@ from reportlab.pdfbase.ttfonts import TTFont
 ROOT = Path(__file__).resolve().parent.parent
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--data', type=Path, default=ROOT / 'output/report-data/results.json')
+parser.add_argument('--font-dir', type=Path, help='Folder containing licensed calibri.ttf and calibrib.ttf files.')
+parser.add_argument('--portable-font', action='store_true', help='Use bundled Vera for portable CI generation checks; not the submission font or layout.')
+parser.add_argument('--output', type=Path, help='Override the final report or CI preview output path.')
 args = parser.parse_args()
+args.output = args.output or ROOT / ('output/pdf/CSE513-HW1-report-ci.pdf' if args.portable_font else 'output/pdf/CSE513-HW1-report.pdf')
 if not args.data.is_file():
     parser.error('Report data is missing. Run node scripts/export-report-data.mjs first.')
 data = json.loads(args.data.read_text(encoding='utf-8'))
@@ -31,32 +37,40 @@ for example in data['additional']:
 meta_path = ROOT / '.submission/metadata.json'
 meta = json.loads(meta_path.read_text(encoding='utf-8')) if meta_path.exists() else {}
 website = meta.get('website', '')
+if not args.portable_font and not all(meta.get(key, '').strip() for key in ['website', 'name', 'studentNumber']):
+    parser.error('Final report requires website, name and studentNumber in ignored .submission/metadata.json. Use --portable-font for a CI-only preview.')
 repo = 'https://github.com/yeturk/CSE513-HW1'
 out = ROOT / 'output/pdf'
 out.mkdir(parents=True, exist_ok=True)
-font_dir = Path(reportlab.__file__).resolve().parent / 'fonts'
-pdfmetrics.registerFont(TTFont('Report', str(font_dir / 'Vera.ttf')))
-pdfmetrics.registerFont(TTFont('ReportBold', str(font_dir / 'VeraBd.ttf')))
+calibri_dir = args.font_dir or (Path(os.environ['WINDIR']) / 'Fonts' if 'WINDIR' in os.environ else None)
+if not args.portable_font:
+    if not calibri_dir or not all((calibri_dir / f).is_file() for f in ['calibri.ttf', 'calibrib.ttf']):
+        parser.error('The assignment uses Calibri. Supply --font-dir with calibri.ttf and calibrib.ttf, or use --portable-font for a CI-only Vera draft.')
+    font_dir, regular, bold = calibri_dir, 'calibri.ttf', 'calibrib.ttf'
+else:
+    font_dir, regular, bold = Path(reportlab.__file__).resolve().parent / 'fonts', 'Vera.ttf', 'VeraBd.ttf'
+pdfmetrics.registerFont(TTFont('Report', str(font_dir / regular)))
+pdfmetrics.registerFont(TTFont('ReportBold', str(font_dir / bold)))
 pdfmetrics.registerFontFamily('Report', normal='Report', bold='ReportBold', italic='Report', boldItalic='ReportBold')
 styles = getSampleStyleSheet()
 for name in ['Normal','BodyText','Heading1','Heading2','Heading3','Title']:
     styles[name].fontName = 'ReportBold' if name.startswith('Heading') or name == 'Title' else 'Report'
-styles['BodyText'].fontSize = 9.5
-styles['BodyText'].leading = 13
-styles['BodyText'].spaceAfter = 6
-styles['Heading1'].fontSize = 20
-styles['Heading1'].leading = 25
-styles['Heading1'].textColor = colors.HexColor('#172943')
+styles['BodyText'].fontSize = 11
+styles['BodyText'].leading = 13.5
+styles['BodyText'].spaceAfter = 5
+styles['Heading1'].fontSize = 18
+styles['Heading1'].leading = 22
+styles['Heading1'].textColor = colors.black
 styles['Heading2'].fontSize = 13
 styles['Heading2'].leading = 18
-styles['Heading2'].spaceBefore = 12
-styles['Heading2'].spaceAfter = 7
+styles['Heading2'].spaceBefore = 9
+styles['Heading2'].spaceAfter = 5
 styles['Heading3'].fontSize = 10.5
 styles['Heading3'].leading = 15
-styles.add(ParagraphStyle('SmallReport', parent=styles['BodyText'], fontSize=8, leading=11))
-styles.add(ParagraphStyle('TableHead', fontName='ReportBold', fontSize=8, leading=10, textColor=colors.white))
-styles.add(ParagraphStyle('TableCell', fontName='Report', fontSize=8.5, leading=11))
-styles.add(ParagraphStyle('Draft', fontName='ReportBold', fontSize=10, leading=14, textColor=colors.HexColor('#a33a26'), spaceAfter=10))
+styles.add(ParagraphStyle('SmallReport', parent=styles['BodyText'], fontSize=9.5, leading=11.5))
+styles.add(ParagraphStyle('TableHead', fontName='ReportBold', fontSize=9, leading=10, textColor=colors.black))
+styles.add(ParagraphStyle('TableCell', fontName='Report', fontSize=9.5, leading=11))
+styles.add(ParagraphStyle('Draft', fontName='Report', fontSize=10, leading=12, textColor=colors.HexColor('#444444'), spaceAfter=7))
 story = []
 def p(text, style='BodyText'):
     return Paragraph(text, styles[style])
@@ -66,38 +80,36 @@ def table(headers, rows, widths=None):
     cells = [[p(str(h), 'TableHead') for h in headers]] + [[p(escape(str(c)), 'TableCell') for c in row] for row in rows]
     t = Table(cells, colWidths=widths, repeatRows=1, hAlign='LEFT')
     t.setStyle(TableStyle([
-        ('BACKGROUND',(0,0),(-1,0),colors.HexColor('#263e61')),('VALIGN',(0,0),(-1,-1),'MIDDLE'),
-        ('TOPPADDING',(0,0),(-1,-1),5),('BOTTOMPADDING',(0,0),(-1,-1),5),
-        ('LEFTPADDING',(0,0),(-1,-1),7),('RIGHTPADDING',(0,0),(-1,-1),7),
-        ('ROWBACKGROUNDS',(0,1),(-1,-1),[colors.HexColor('#f0f4f9'),colors.white]),
-        ('LINEBELOW',(0,0),(-1,-1),.4,colors.HexColor('#d8e1ed')),
+        ('BACKGROUND',(0,0),(-1,0),colors.HexColor('#eeeeee')),('VALIGN',(0,0),(-1,-1),'MIDDLE'),
+        ('TOPPADDING',(0,0),(-1,-1),3),('BOTTOMPADDING',(0,0),(-1,-1),3),
+        ('LEFTPADDING',(0,0),(-1,-1),5),('RIGHTPADDING',(0,0),(-1,-1),5),
+        ('LINEBELOW',(0,0),(-1,-1),.3,colors.HexColor('#cccccc')),
     ]))
     story.append(t)
-    story.append(Spacer(1,8))
+    story.append(Spacer(1,5))
 def fmt(n): return f'{n:g}'
 def metric_rows(processes):
     return [[x['id']] + [x[k] for k in ['arrival','burst','firstStart','completion','turnaround','waiting','response']] for x in processes]
-metric_head = ['Process','Arrival','Burst','First start','Completion','Turnaround','Waiting','Response']
-metric_widths = [53,49,41,57,69,67,56,63]
-palette = ['#f4c65b','#78d5c1','#baa7f3','#f6a58f','#96c9f3']
+metric_head = ['ID','Arrival','Burst','S','C','T','W','R']
+metric_widths = [40,55,50,55,55,80,80,80]
 
 class Gantt(Flowable):
     def __init__(self, segments, ids):
-        super().__init__(); self.segments = segments; self.ids = ids; self.width = 495; self.height = 62
+        super().__init__(); self.segments = segments; self.ids = ids; self.width = 495; self.height = 40
     def draw(self):
         c = self.canv; end = self.segments[-1]['end']; left = 0
         for s in self.segments:
             x = s['start']/end*self.width; w = (s['end']-s['start'])/end*self.width
-            color = '#dce3ec' if s['processId'] is None else palette[self.ids.index(s['processId']) % len(palette)]
-            c.setFillColor(colors.HexColor(color)); c.setStrokeColor(colors.white); c.rect(x,24,w,29,fill=1,stroke=1)
-            c.setFillColor(colors.HexColor('#172943')); c.setFont('ReportBold',8)
-            c.drawCentredString(x+w/2,35,s['processId'] or 'Idle')
-            c.setFont('Report',8); c.drawString(x,12,str(s['start']))
-        c.drawRightString(self.width,12,str(end))
+            c.setFillColor(colors.HexColor('#eeeeee') if s['processId'] is None else colors.white)
+            c.setStrokeColor(colors.HexColor('#666666')); c.setLineWidth(.5); c.rect(x,16,w,20,fill=1,stroke=1)
+            c.setFillColor(colors.black); c.setFont('ReportBold',9)
+            c.drawCentredString(x+w/2,23,s['processId'] or 'Idle')
+            c.setFont('Report',8); c.drawString(x,4,str(s['start']))
+        c.drawRightString(self.width,4,str(end))
 
 def footer(canvas, doc):
     canvas.setFont('Report',8); canvas.setFillColor(colors.HexColor('#59677c'))
-    canvas.drawString(50,28,'CSE513 Assignment 1 | Review draft')
+    canvas.drawString(50,28,'CSE513 Assignment 1' + (' | CI preview' if args.portable_font else ''))
     canvas.drawRightString(A4[0]-50,28,str(doc.page))
 
 add('CSE513 Assignment 1<br/>CPU Scheduling Simulator', 'Heading1')
@@ -107,7 +119,8 @@ else:
     add('Working website: pending deployment - this draft is not ready to submit.', 'Draft')
 add(f'Source repository: <link href="{repo}" color="#244bd8">{repo}</link> (dev branch)')
 add('Student: ' + escape(meta.get('name', 'To be completed')) + '<br/>Student number: ' + escape(meta.get('studentNumber', 'To be completed')))
-add('Review draft: read and confirm the explanations and AI-use statement before submission. Check the website link and student details above.', 'Draft')
+if args.portable_font:
+    add('CI preview: portable font and placeholder metadata. Not for submission.', 'Draft')
 add('1. Scope and model', 'Heading2')
 add('Scheduling Lab is a browser-based React and TypeScript simulator for FCFS, non-preemptive SJF, preemptive SRTF, and Round Robin. The model has one CPU, one burst per process, no I/O, and zero context-switch cost. Simulated time is not wall-clock time; this is not an implementation of Ubuntu\'s scheduler.')
 add('The interface supports process creation, editing and removal, a configurable RR quantum, automatic calculation, labeled Gantt intervals including idle time, complete per-process metrics, and comparison of the four algorithms. Workloads A/B and four learning presets are available. A first-use guide, light/dark themes, zoom, decision tracing and browser-local named workloads support exploration.')
@@ -119,7 +132,7 @@ table(['Policy','Selection rule'],[
     ['RR','FIFO queue. At a boundary, admit new arrivals before re-enqueuing the unfinished runner. Completed jobs never rejoin.'],
 ], [62,433])
 add('Selection ties use earlier arrival, then earlier input-list position. A ready process must run whenever one exists. If none is ready, the timeline includes an idle interval. An interval [s,e) supplies e-s CPU units. Consecutive RR quanta remain separate, even for the same process.')
-add('<b>T = C - arrival; W = T - burst; R = S - arrival.</b><br/>S is first start; C is completion. Averages are arithmetic means over processes, and only displayed averages are rounded.')
+add('<b>T = C - A; W = T - B; R = S - A.</b><br/>A = arrival, B = burst, S = first start, C = completion. T/W/R denote turnaround, waiting and response. Averages are arithmetic means; only displayed averages are rounded.')
 add('3. Verification approach', 'Heading2')
 add('The eight A/B schedules on the following pages were worked through with the student before implementation and preserved in docs/hand-calculations.md. The report exporter reads those prior calculations independently of the simulator, runs the current motor, and asserts equality of every interval and every process metric. The report contains both sets of values; none of the manual reference values is generated by simulate().')
 
@@ -133,33 +146,42 @@ reasons = {
  ('B','SRTF'): 'The schedule equals SJF. At t=9 P3 has 1 unit remaining and P4 needs 1 unit. Equal remaining time keeps P3 running.',
  ('B','RR'): 'P1 runs from 2 to 4, then waits behind P2. It finishes from 5 to 6. The arrival of P4 at t=9 does not interrupt the current P3 quantum.',
 }
-for i,e in enumerate(data['examples'],1):
+for algorithm in ['FCFS', 'SJF', 'SRTF', 'RR']:
     story.append(PageBreak())
-    title = f"{i}. Workload {e['workload']} / {e['algorithm']}" + (' (q = 2)' if e['algorithm']=='RR' else '')
-    add(title, 'Heading1')
-    add('Input data', 'Heading2')
-    table(['Process','Arrival','CPU burst'], [[p['id'],p['arrival'],p['burst']] for p in e['input']], [165]*3)
-    add('Hand-calculated schedule and metrics', 'Heading2')
-    add(reasons[(e['workload'],e['algorithm'])])
-    story.append(Gantt(e['manual']['segments'],[p['id'] for p in e['input']]))
-    table(metric_head,metric_rows(e['manual']['processes']),metric_widths)
-    av = e['manual']['averages']
-    add(f"Hand averages: turnaround <b>{fmt(av['turnaround'])}</b>, waiting <b>{fmt(av['waiting'])}</b>, response <b>{fmt(av['response'])}</b>.")
-    example = e['manual']['processes'][1]
-    add(f"Worked metric calculation ({example['id']}): T = {example['completion']} - {example['arrival']} = {example['turnaround']}; W = {example['turnaround']} - {example['burst']} = {example['waiting']}; R = {example['firstStart']} - {example['arrival']} = {example['response']}.", 'SmallReport')
-    add('Current simulator output', 'Heading2')
-    table(metric_head,metric_rows(e['actual']['processes']),metric_widths)
-    chart = ', '.join(f"{s['processId'] or 'Idle'} [{s['start']},{s['end']})" for s in e['actual']['segments'])
-    add('Simulator timeline: '+chart+'.', 'SmallReport')
-    actual_av = e['actual']['averages']
-    add(f"Simulator averages: T={fmt(actual_av['turnaround'])}; W={fmt(actual_av['waiting'])}; R={fmt(actual_av['response'])}.")
-    add('<b>Comparison:</b> Every timeline interval, first start, completion, turnaround, waiting, response and average matches the prior hand calculation. No discrepancy remains for this example.')
+    add(f"{algorithm}: Workloads A and B" + (' (q = 2)' if algorithm == 'RR' else ''), 'Heading1')
+    for e in [x for x in data['examples'] if x['algorithm'] == algorithm]:
+        add(f"Workload {e['workload']} - hand calculation", 'Heading2')
+        add(reasons[(e['workload'],algorithm)], 'SmallReport')
+        story.append(Gantt(e['manual']['segments'],[p['id'] for p in e['input']]))
+        manual_rows = [[x['id'], x['arrival'], x['burst'], x['firstStart'], x['completion'],
+            f"{x['completion']}-{x['arrival']}={x['turnaround']}",
+            f"{x['turnaround']}-{x['burst']}={x['waiting']}",
+            f"{x['firstStart']}-{x['arrival']}={x['response']}"] for x in e['manual']['processes']]
+        table(['ID','Arrival','Burst','S','C','T = C-A','W = T-B','R = S-A'], manual_rows, metric_widths)
+        av = e['manual']['averages']
+        means = [f"{label}=({' + '.join(str(x[key]) for x in e['manual']['processes'])})/4={fmt(av[key])}"
+            for key,label in [('turnaround','T'),('waiting','W'),('response','R')]]
+        add('<b>Hand averages:</b> ' + '; '.join(means) + '.', 'SmallReport')
+        add('<b>Simulator output</b> (S = first start, C = completion):', 'SmallReport')
+        table(['ID','S','C','T','W','R'], [[x['id']] + [x[k] for k in ['firstStart','completion','turnaround','waiting','response']]
+            for x in e['actual']['processes']], [40,55,55,115,115,115])
+        chart = ', '.join(f"{s['processId'] or 'Idle'} [{s['start']},{s['end']})" for s in e['actual']['segments'])
+        add('Simulator timeline: '+chart+'.', 'SmallReport')
+        actual_av = e['actual']['averages']
+        add(f"Simulator mean T/W/R: {fmt(actual_av['turnaround'])} / {fmt(actual_av['waiting'])} / {fmt(actual_av['response'])}. "
+            '<b>Comparison:</b> all intervals, process metrics and averages match; no discrepancy.', 'SmallReport')
 
 story.append(PageBreak())
 add('4. Additional test workloads', 'Heading1')
 add('These cases were proposed with AI assistance and checked against explicit scheduling rules. Each provides an expected result in addition to the simulator output. They are available in the workload library; all required invariants are checked separately.')
 for i,e in enumerate(data['additional'],1):
     add(f"{i}. {e['name']}", 'Heading2')
+    behavior = {
+        'idle': 'Checks initial and intermediate CPU idle intervals, and immediate dispatch when a job becomes ready.',
+        'ties': 'Checks simultaneous arrivals and equal bursts: input-list order breaks the tie, not alphabetical process ID.',
+        'preemption': 'Checks SRTF preemption: at t=1, S needs 1 unit while L has 4 remaining, so S interrupts L.',
+    }
+    add('<b>Behavior checked:</b> ' + behavior[e['id']], 'SmallReport')
     add('Inputs in list order: '+', '.join(f"{x['id']}(arrival={x['arrival']}, burst={x['burst']})" for x in e['processes'])+'.')
     expected = e['expected']
     chart = ', '.join(f"{s['processId'] or 'Idle'} [{s['start']},{s['end']})" for s in expected['segments'])
@@ -185,22 +207,27 @@ add('4. Exact bursts versus real operating systems', 'Heading2')
 add('The simulator receives complete burst lengths as input. A real OS generally cannot know how much CPU time a process will need before it blocks or completes; future behavior depends on program paths and inputs. It therefore estimates future bursts from past observations, for example by exponential averaging. This simulator intentionally removes that prediction problem to isolate scheduling-policy behavior.')
 
 story.append(PageBreak())
-add('6. Analysis, implementation and AI use', 'Heading1')
+add('Analysis (continued)', 'Heading1')
 add('5. Starvation', 'Heading2')
 add('SJF or SRTF can indefinitely delay a long job if new shorter jobs keep becoming ready. In these finite workloads, arrivals eventually stop and all bursts are finite, so remaining work eventually completes. A large finite waiting time is not itself proof of indefinite starvation.')
 add('6. An implementation mistake exposed by a test', 'Heading2')
 add('An initial mobile layout allowed a CSS grid column to retain its minimum content width. A Playwright check measured 533 px of page width in a 390 px viewport. The result grid was changed to minmax(0,1fr), panels were allowed to shrink, and tables/charts were given their own overflow regions. The same test then passed. This is an actual interface implementation bug, not an invented scheduling error.')
-add('Implementation and limitations', 'Heading2')
+add('6. Implementation, limitations and AI use', 'Heading1')
 add('The pure TypeScript scheduling motor is separate from React. It jumps to the next arrival, completion or quantum boundary, records each decision, and derives metrics from first start and completion. Original burst values are preserved separately from remaining work. The interface derives results from current inputs, clearing results on invalid input. Named workloads and theme preferences use optional browser storage; no backend or login is needed.')
 add('Limits: at most 64 processes, 24 characters per process ID, integer times up to 1,000,000, maximum arrival plus total burst up to 1,000,000, and at most 2,000 RR slices. At most 12 named workloads are retained in a browser. Very small chart labels may be hidden in Fit mode; zoom, accessible button names and decision details retain the exact interval information.')
 add('Validation evidence', 'Heading2')
 add('Unit tests cover independent references and invariants; Playwright checks user flows, metric sorting, keyboard access and responsive layouts. The exporter asserts eight prior hand calculations and three additional references before printing a match. Current test counts, build results and OS evidence are recorded in docs/roadmap.md. Deployment availability requires a separate live check.')
 add('AI-use statement', 'Heading2')
-add('Codex assisted with assignment review, tutoring, checking the student\'s manual calculations, implementation, tests and this draft. Claude Code CLI provided design advice and a code review. Selected Decision Inspector and queue ideas were adapted from a Stitch prototype; its fixed data and script were not used as the engine. Prior hand calculations, independent references, invariants and browser tests verify the implementation.')
+add('Codex assisted with assignment review, tutoring, checking the student\'s manual calculations, implementation, tests and this report. Claude Code CLI provided design advice and code/report reviews. Selected Decision Inspector and queue ideas were adapted from a Stitch prototype; its fixed data and script were not used as the engine. Prior hand calculations, independent references, invariants and browser tests verify the implementation.')
 add('Corrections to AI suggestions: an earlier design brief used an idle interval of 5-8 for Workload B; the correct interval is 6-8 because the early jobs finish at t=6. A later design suggestion used process ID for tie-breaking; the assignment requires arrival followed by input-list order. Both suggestions were rejected. Student review and the ability to trace an unfamiliar workload remain necessary before submission.')
 add('Sources and reproducibility', 'Heading2')
 add('Requirements: <link href="https://mehmetgokturk.com/cse513/materials/assignment01/CSE513-Assignment-1.pdf" color="#244bd8">official CSE513 Assignment 1 PDF</link>. Code, README and test sources: the repository linked on page 1. Independent reference calculations: docs/hand-calculations.md. Additional cases: docs/additional-tests.md. Run pnpm install --frozen-lockfile, pnpm test, pnpm build, and pnpm test:e2e as described in the README.', 'SmallReport')
 
-doc = SimpleDocTemplate(str(out/'CSE513-HW1-report-draft.pdf'), pagesize=A4, rightMargin=50, leftMargin=50, topMargin=44, bottomMargin=44, title='CSE513 Assignment 1 - Review draft', author=meta.get('name',''))
+args.output.parent.mkdir(parents=True, exist_ok=True)
+pdf_buffer = BytesIO()
+doc = SimpleDocTemplate(pdf_buffer, pagesize=A4, rightMargin=50, leftMargin=50, topMargin=44, bottomMargin=44, title='CSE513 Assignment 1' + (' - CI preview' if args.portable_font else ''), author=meta.get('name',''))
 doc.build(story,onFirstPage=footer,onLaterPages=footer)
-print(out/'CSE513-HW1-report-draft.pdf')
+if not args.portable_font and doc.page >= 10:
+    raise RuntimeError(f'Report has {doc.page} pages; shorten the layout to stay below 10.')
+args.output.write_bytes(pdf_buffer.getvalue())
+print(f'{args.output} ({doc.page} pages; font: {"Vera, CI only" if args.portable_font else "Calibri"})')

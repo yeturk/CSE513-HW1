@@ -113,5 +113,23 @@ views, dark theme, mobile width, bundled fonts and asset responses passed. The p
 also passed the same check locally. This is browser/software evidence, not a test of Ubuntu's actual
 kernel scheduler. Student report review and final Teams submission remain pending.
 
+## Final report verification
+
+The final local submission report uses Calibri, matching the assignment, and has eight pages.
+It includes explicit behavior statements for all three additional tests, corrected section numbering
+and no review-draft banner. Identity and the generated PDF remain in ignored local directories.
+The generator validates page count before writing; a forced ten-page regression check confirmed
+that an existing output is preserved on failure. Portable CI generation uses a separate, clearly
+labeled Vera preview and does not require private metadata or licensed system fonts.
+
+The final Claude review found no scheduling or metric error. Separate anonymous browser captures
+covered eight A/B cases, the three additional tests and Workload A RR q=1/q=4. All 13 matched an
+independent unit-time scheduler and the final report's numerical content. Both first-page links
+were checked. All eight final pages were rendered and inspected. The 62 unit tests passed again;
+this report-only revision does not change the application or the previously published site.
+Tracked files and reachable history were scanned for student metadata, credentials and private
+paths, with no matches in that audit. This is bounded pattern-based evidence, not a guarantee for
+every possible secret format. Final student review and the Teams upload remain student actions.
+
 The official PDF says the deadline is "To be announced". The instructor's Teams announcement is
 the definitive deadline source; the student reported an approximately eight-hour window on 25 October.

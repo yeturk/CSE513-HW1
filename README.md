@@ -126,7 +126,7 @@ public/fonts/       Bundled font license
 tests/unit/         Independent schedule expectations and boundary checks
 tests/e2e/          Playwright user flows, accessibility and responsive checks
 docs/               Architecture, manual references, tests, AI log and delivery checklist
-scripts/            Local report verification/export and PDF draft generation
+scripts/            Local report verification/export and PDF generation
 .github/workflows/  Verification and manually dispatched Pages publication
 ```
 
@@ -137,13 +137,20 @@ scripts/            Local report verification/export and PDF draft generation
 additional references against current simulator output, then writes `output/report-data/results.json`.
 The PDF generator checks the additional reference data again. Install the optional
 PDF dependency with `python -m pip install -r scripts/report-requirements.txt`, then run
-`python scripts/build-report.py`. The generator embeds ReportLab's bundled Vera fonts and does not
-depend on OS-installed fonts. It refuses missing or mismatched reference data. These report tools
+`python scripts/build-report.py`. The submission report uses Calibri and Calibri Bold, matching the
+assignment PDF. On Windows these are read from the system Fonts folder; elsewhere use `--font-dir`
+with locally licensed `calibri.ttf` and `calibrib.ttf` files. Font files are not committed. CI uses
+`--portable-font` to verify generation with bundled Vera; that is not the submission typography.
+The final output is `output/pdf/CSE513-HW1-report.pdf`; the CI preview is separately named
+`output/pdf/CSE513-HW1-report-ci.pdf`. Use `--output` to override either destination.
+The generator refuses missing or mismatched reference data and incomplete final-report metadata.
+It validates the final report's page count (fewer than ten) before writing the PDF, preserving any
+existing output if validation fails. These report tools
 are not required to run the simulator. Poppler or pypdfium2 can render the PDF for review.
 
 Personal report metadata belongs only in the ignored `.submission/metadata.json`, using `name`,
 `studentNumber` and `website`. Generated `output/` files and this private folder are not committed.
-The report remains a draft until the live link, student information and review are complete.
+Review the final PDF and verify the live link and student details before uploading it to Teams.
 
 ## Limits
 
