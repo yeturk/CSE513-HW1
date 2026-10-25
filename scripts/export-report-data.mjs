@@ -1,6 +1,7 @@
 import { createServer } from 'vite';
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
+import { verifyAdditionalExamples } from './report-verification.mjs';
 
 const server = await createServer({ server: { middlewareMode: true }, appType: 'custom' });
 try {
@@ -25,9 +26,9 @@ try {
     examples.push({ workload, algorithm, input: WORKLOADS[workload], manual, actual, comparison: 'Exact match' });
   }
   assert.equal(examples.length, 8);
-  const additional = PRESETS.filter(p => ['idle','ties','preemption'].includes(p.id)).map(p => ({ ...p, result: simulate(p.processes,p.algorithm,2) }));
+  const additional = verifyAdditionalExamples(PRESETS, simulate);
   const quantum = [1,2,4].map(q => simulate(WORKLOADS.A,'RR',q));
   await mkdir('output/report-data', { recursive: true });
   await writeFile('output/report-data/results.json', JSON.stringify({ generatedAt: new Date().toISOString(), examples, additional, quantum }, null, 2));
-  console.log('Verified all 8 previously hand-calculated examples against current simulator output. Report data saved.');
+  console.log('Verified all 8 prior hand calculations and all 3 additional report references. Report data saved.');
 } finally { await server.close(); }

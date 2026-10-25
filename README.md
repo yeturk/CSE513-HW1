@@ -48,6 +48,14 @@ does not need to install the font or contact a font CDN. Its OFL license is incl
 Hover or keyboard-focus controls for tooltips. The question-mark buttons explain input fields
 and metrics. Tooltips can be dismissed with Escape; disabled controls have focusable explanations.
 
+Process metrics start in input order. Click any column header to sort descending, then again for
+ascending order. **Restore input order** returns to the default. Sorting only changes the table;
+it does not change scheduling or process colors. Equal values retain their input order.
+
+The **Context switches** card counts direct handoffs between different processes. Initial dispatch,
+transitions to/from idle, and consecutive slices of the same process do not count. Every switch
+costs zero time units in this model. Workload A with RR q=2 has six switches, although it has eight slices.
+
 ### Workloads and local saves
 
 The library contains six presets: A, B, idle intervals, simultaneous arrivals/ties, SRTF preemption,
@@ -117,10 +125,13 @@ scripts/            Local report verification/export and PDF draft generation
 ## Report preparation
 
 [Submission checklist](docs/submission-checklist.md) maps the assignment to deliverables.
-`node scripts/export-report-data.mjs` reads the eight prior hand calculations, compares them with
-current simulator output, and writes `output/report-data/results.json`. `scripts/build-report.py`
-uses Python, ReportLab and Windows Arial fonts to create the English review PDF. These optional
-report tools are not required to run the simulator. Poppler or pypdfium2 can render the PDF for review.
+`node scripts/export-report-data.mjs` checks the eight prior hand calculations and three independent
+additional references against current simulator output, then writes `output/report-data/results.json`.
+The PDF generator checks the additional reference data again. Install the optional
+PDF dependency with `python -m pip install -r scripts/report-requirements.txt`, then run
+`python scripts/build-report.py`. The generator embeds ReportLab's bundled Vera fonts and does not
+depend on OS-installed fonts. It refuses missing or mismatched reference data. These report tools
+are not required to run the simulator. Poppler or pypdfium2 can render the PDF for review.
 
 Personal report metadata belongs only in the ignored `.submission/metadata.json`, using `name`,
 `studentNumber` and `website`. Generated `output/` files and this private folder are not committed.

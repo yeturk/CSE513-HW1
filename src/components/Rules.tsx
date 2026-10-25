@@ -23,7 +23,8 @@ export function Rules({ onClose }: { onClose: () => void }) {
       </dl><p className="rules-callout"><strong>Selection ties:</strong> earlier arrival, then earlier position in the input list. Process ID does not decide the order.</p></section>
       <section><h3>Reading time and metrics</h3><p>An interval [2, 5) gives 3 CPU units. Consecutive RR slices stay separate even when the same process runs again.</p>
         <ul><li><strong>Turnaround</strong> = completion − arrival</li><li><strong>Waiting</strong> = turnaround − CPU burst</li><li><strong>Response</strong> = first start − arrival</li></ul>
-        <p>In Process lanes, faint lines span arrival to completion. Colored blocks are CPU service; gaps along the faint line are ready-queue waiting. Rows are not separate CPUs.</p></section>
+        <p>In Process lanes, faint lines span arrival to completion. Colored blocks are CPU service; gaps along the faint line are ready-queue waiting. Rows are not separate CPUs.</p>
+        <p><strong>Context switches:</strong> count direct handoffs between different processes. Initial dispatch, transitions to or from idle, and consecutive slices of the same process are excluded. Every switch costs zero time units.</p></section>
       <section><h3>Valid inputs and limits</h3><p>IDs must be unique after trimming spaces (case-sensitive). Arrivals are nonnegative integers; bursts and quantum are positive integers. Invalid inputs clear affected results and show an explanation.</p>
         <p>Up to {LIMITS.processes} processes, 24 characters per ID, maximum arrival plus total burst of {LIMITS.time.toLocaleString('en-US')} units, and {LIMITS.slices.toLocaleString('en-US')} RR slices. Increase quantum if the slice limit is exceeded.</p></section>
     </div><div className="rules-footer"><button type="button" className="primary-button" onClick={onClose}>Back to the lab</button></div>

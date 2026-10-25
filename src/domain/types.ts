@@ -42,4 +42,5 @@ export interface SimulationResult {
   finishTime: number;
   busyTime: number;
   idleTime: number;
+  contextSwitches: number;
 }

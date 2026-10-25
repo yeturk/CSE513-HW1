@@ -44,6 +44,16 @@ interface Job extends ProcessInput {
 
 const arrivalOrder = (a: Job, b: Job) => a.arrival - b.arrival || a.order - b.order;
 
+/** Direct handoffs between different processes; idle and initial dispatch are excluded. */
+export function countContextSwitches(segments: Segment[]): number {
+  return segments.reduce((count, segment, index) => {
+    const previous = segments[index - 1];
+    return count + Number(!!previous && previous.end === segment.start
+      && previous.processId !== null && segment.processId !== null
+      && previous.processId !== segment.processId);
+  }, 0);
+}
+
 /** Pure, event-driven simulation. Time jumps to arrivals, completions or RR boundaries. */
 export function simulate(inputs: ProcessInput[], algorithm: Algorithm, quantum = 2): SimulationResult {
   const errors = validateInput(inputs, algorithm, quantum);
@@ -151,5 +161,5 @@ export function simulate(inputs: ProcessInput[], algorithm: Algorithm, quantum =
   const busyTime = jobs.reduce((sum, p) => sum + p.burst, 0);
   return { algorithm, quantum: algorithm === 'RR' ? quantum : null, processes, segments, decisions,
     averages: { turnaround: mean('turnaround'), waiting: mean('waiting'), response: mean('response') },
-    finishTime: clock, busyTime, idleTime: clock - busyTime };
+    finishTime: clock, busyTime, idleTime: clock - busyTime, contextSwitches: countContextSwitches(segments) };
 }

@@ -1,4 +1,5 @@
-import type { SimulationResult } from '../domain/types';
+import { useState } from 'react';
+import type { ProcessMetrics, SimulationResult } from '../domain/types';
 import { colorClass } from './Timeline';
 import { HelpTooltip } from './ControlTooltip';
 
@@ -13,18 +14,41 @@ export function Averages({ result }: { result: SimulationResult }) {
   return <div className="averages-strip">{METRICS.map(metric => <div key={metric.key}>
     <span>Average {metric.label.toLowerCase()} <HelpTooltip label={`Explain ${metric.label.toLowerCase()}`} content={`${metric.formula}. Add this value for all processes and divide by the number of processes.`} /></span><strong>{format(result.averages[metric.key])}<small>units</small></strong>
     <p>{metric.formula}</p>
-  </div>)}</div>;
+  </div>)}<div className="context-switch-summary">
+    <span>Context switches <HelpTooltip label="Explain context switches" content="Count direct handoffs between different processes. Exclude initial dispatch, transitions to/from idle, and consecutive slices of the same process. Each switch costs 0 time units in this model." /></span>
+    <strong>{format(result.contextSwitches)}<small>switches</small></strong><p>Cost per switch: 0 time units</p>
+  </div></div>;
 }
+
+const COLUMNS = [
+  ['id', 'Process'], ['arrival', 'Arrival'], ['burst', 'Burst'], ['firstStart', 'First start'],
+  ['completion', 'Completion'], ['turnaround', 'Turnaround'], ['waiting', 'Waiting'], ['response', 'Response'],
+] as const;
 
 export function Results({ result, selectedProcessId, onSelectProcess }: {
   result: SimulationResult; selectedProcessId: string | null; onSelectProcess: (id: string | null) => void;
 }) {
+  const [sort, setSort] = useState<{ key: keyof ProcessMetrics; direction: 'descending' | 'ascending' } | null>(null);
+  const rows = sort ? [...result.processes].sort((a, b) => {
+    const left = a[sort.key], right = b[sort.key];
+    const difference = typeof left === 'number' && typeof right === 'number'
+      ? left - right : String(left).localeCompare(String(right), 'en', { numeric: true });
+    return sort.direction === 'ascending' ? difference : -difference;
+  }) : result.processes;
   return <section className="panel metrics-panel" aria-labelledby="metrics-title">
     <div className="panel-heading"><h2 id="metrics-title">Process metrics</h2><span className="quiet-badge">{result.processes.length} processes</span></div>
+    <div className="metrics-order"><span>{sort ? `${COLUMNS.find(([key]) => key === sort.key)![1]} · ${sort.direction}` : 'Input order'} · select a column to sort</span>
+      {sort && <button type="button" className="text-button" onClick={() => setSort(null)}>Restore input order</button>}</div>
     <div className="table-scroll" tabIndex={0} aria-label="Process metrics; scroll horizontally if needed"><table className="results-table">
       <caption className="sr-only">{result.algorithm} process results</caption>
-      <thead><tr><th>Process</th><th>Arrival</th><th>Burst</th><th>First start</th><th>Completion</th><th>Turnaround</th><th>Waiting</th><th>Response</th></tr></thead>
-      <tbody>{result.processes.map(p => <tr key={p.id} className={selectedProcessId === p.id ? 'highlighted-process' : ''} data-process-id={p.id}><th scope="row">
+      <thead><tr>{COLUMNS.map(([key, label]) => {
+        const direction = sort?.key === key && sort.direction === 'descending' ? 'ascending' : 'descending';
+        return <th key={key} scope="col" aria-sort={sort?.key === key ? sort.direction : 'none'}>
+          <button type="button" className="sort-column" aria-label={`Sort by ${label} ${direction}`} onClick={() => setSort({ key, direction })}>
+            {label}<span aria-hidden="true">{sort?.key === key ? sort.direction === 'descending' ? '↓' : '↑' : '↕'}</span>
+          </button></th>;
+      })}</tr></thead>
+      <tbody>{rows.map(p => <tr key={p.id} className={selectedProcessId === p.id ? 'highlighted-process' : ''} data-process-id={p.id}><th scope="row">
         <button type="button" className="process-select" aria-label={`Highlight ${p.id}`} aria-pressed={selectedProcessId === p.id}
           onClick={() => onSelectProcess(selectedProcessId === p.id ? null : p.id)}><span className={`process-dot ${colorClass(result,p.id)}`} />{p.id}</button></th>
         <td>{p.arrival}</td><td>{p.burst}</td><td>{p.firstStart}</td><td>{p.completion}</td><td>{p.turnaround}</td><td>{p.waiting}</td><td>{p.response}</td></tr>)}</tbody>

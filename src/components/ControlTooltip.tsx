@@ -1,12 +1,13 @@
+import { cloneElement } from 'react';
 import type { ReactElement } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 
 /** One stable trigger per control; the portal escapes chart/table overflow containers. */
 export function ControlTooltip({ content, children, side = 'top' }: {
-  content: string; children: ReactElement<{ disabled?: boolean }>; side?: 'top' | 'bottom' | 'left' | 'right';
+  content: string; children: ReactElement<{ disabled?: boolean; 'aria-label'?: string; 'aria-hidden'?: boolean }>; side?: 'top' | 'bottom' | 'left' | 'right';
 }) {
   const trigger = children.props.disabled
-    ? <span className="disabled-tooltip-trigger" tabIndex={0} aria-label={content}>{children}</span>
+    ? <span className="disabled-tooltip-trigger" role="button" aria-disabled="true" tabIndex={0} aria-label={children.props['aria-label'] ?? content}>{cloneElement(children, { 'aria-hidden': true })}</span>
     : children;
   return <Tooltip.Root><Tooltip.Trigger asChild>{trigger}</Tooltip.Trigger><Tooltip.Portal>
     <Tooltip.Content className="control-tooltip" side={side} sideOffset={8} collisionPadding={12}>

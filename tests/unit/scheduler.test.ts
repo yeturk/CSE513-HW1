@@ -4,6 +4,21 @@ import { ALGORITHMS } from '../../src/domain/types';
 import type { Algorithm, ProcessInput, SimulationResult } from '../../src/domain/types';
 import { WORKLOADS } from '../../src/domain/workloads';
 
+describe('context switch accounting', () => {
+  it('counts direct process changes, not RR slice boundaries', () => {
+    expect(ALGORITHMS.map(a => simulate(WORKLOADS.A, a, 2).contextSwitches)).toEqual([3, 3, 5, 6]);
+  });
+  it('excludes initial dispatch and transitions to/from idle', () => {
+    expect(ALGORITHMS.map(a => simulate(WORKLOADS.B, a, 2).contextSwitches)).toEqual([2, 2, 2, 3]);
+  });
+  it('counts no switches when only one process receives repeated quanta', () => {
+    const result = simulate([{ id: 'Solo', arrival: 3, burst: 5 }], 'RR', 1);
+    expect(result.segments).toHaveLength(6);
+    expect(result.contextSwitches).toBe(0);
+    expect(result.finishTime).toBe(8);
+  });
+});
+
 // Independent hand calculations completed with the student before implementation.
 const GOLDENS: { workload: 'A' | 'B'; algorithm: Algorithm; chart: [string | null, number, number][];
   first: number[]; completion: number[]; averages: number[] }[] = [

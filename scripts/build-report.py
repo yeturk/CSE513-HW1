@@ -1,5 +1,7 @@
 """Build a local submission draft. Personal metadata lives in ignored .submission/."""
 import json
+import argparse
+import reportlab
 from pathlib import Path
 from html import escape
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Flowable
@@ -11,23 +13,37 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
 ROOT = Path(__file__).resolve().parent.parent
-data = json.loads((ROOT / 'output/report-data/results.json').read_text(encoding='utf-8'))
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--data', type=Path, default=ROOT / 'output/report-data/results.json')
+args = parser.parse_args()
+if not args.data.is_file():
+    parser.error('Report data is missing. Run node scripts/export-report-data.mjs first.')
+data = json.loads(args.data.read_text(encoding='utf-8'))
+# Refuse stale/unverified additional data, even when invoked separately from the exporter.
+if sorted(example['id'] for example in data['additional']) != ['idle', 'preemption', 'ties']:
+    parser.error('Expected the idle, ties and preemption report references. Re-run the exporter.')
+for example in data['additional']:
+    if example.get('comparison') != 'Exact match' or 'expected' not in example:
+        parser.error('Additional references are unverified. Re-run node scripts/export-report-data.mjs.')
+    for key in ['segments', 'processes', 'averages']:
+        if example['result'][key] != example['expected'][key]:
+            parser.error(f"Additional reference {example['id']}: {key} mismatch. Re-run the exporter.")
 meta_path = ROOT / '.submission/metadata.json'
 meta = json.loads(meta_path.read_text(encoding='utf-8')) if meta_path.exists() else {}
 website = meta.get('website', '')
 repo = 'https://github.com/yeturk/CSE513-HW1'
 out = ROOT / 'output/pdf'
 out.mkdir(parents=True, exist_ok=True)
-font_dir = Path('C:/Windows/Fonts')
-pdfmetrics.registerFont(TTFont('Report', str(font_dir / 'arial.ttf')))
-pdfmetrics.registerFont(TTFont('ReportBold', str(font_dir / 'arialbd.ttf')))
+font_dir = Path(reportlab.__file__).resolve().parent / 'fonts'
+pdfmetrics.registerFont(TTFont('Report', str(font_dir / 'Vera.ttf')))
+pdfmetrics.registerFont(TTFont('ReportBold', str(font_dir / 'VeraBd.ttf')))
 pdfmetrics.registerFontFamily('Report', normal='Report', bold='ReportBold', italic='Report', boldItalic='ReportBold')
 styles = getSampleStyleSheet()
 for name in ['Normal','BodyText','Heading1','Heading2','Heading3','Title']:
     styles[name].fontName = 'ReportBold' if name.startswith('Heading') or name == 'Title' else 'Report'
 styles['BodyText'].fontSize = 9.5
-styles['BodyText'].leading = 14
-styles['BodyText'].spaceAfter = 7
+styles['BodyText'].leading = 13
+styles['BodyText'].spaceAfter = 6
 styles['Heading1'].fontSize = 20
 styles['Heading1'].leading = 25
 styles['Heading1'].textColor = colors.HexColor('#172943')
@@ -51,7 +67,7 @@ def table(headers, rows, widths=None):
     t = Table(cells, colWidths=widths, repeatRows=1, hAlign='LEFT')
     t.setStyle(TableStyle([
         ('BACKGROUND',(0,0),(-1,0),colors.HexColor('#263e61')),('VALIGN',(0,0),(-1,-1),'MIDDLE'),
-        ('TOPPADDING',(0,0),(-1,-1),6),('BOTTOMPADDING',(0,0),(-1,-1),6),
+        ('TOPPADDING',(0,0),(-1,-1),5),('BOTTOMPADDING',(0,0),(-1,-1),5),
         ('LEFTPADDING',(0,0),(-1,-1),7),('RIGHTPADDING',(0,0),(-1,-1),7),
         ('ROWBACKGROUNDS',(0,1),(-1,-1),[colors.HexColor('#f0f4f9'),colors.white]),
         ('LINEBELOW',(0,0),(-1,-1),.4,colors.HexColor('#d8e1ed')),
@@ -62,7 +78,7 @@ def fmt(n): return f'{n:g}'
 def metric_rows(processes):
     return [[x['id']] + [x[k] for k in ['arrival','burst','firstStart','completion','turnaround','waiting','response']] for x in processes]
 metric_head = ['Process','Arrival','Burst','First start','Completion','Turnaround','Waiting','Response']
-metric_widths = [53,49,43,59,69,70,56,56]
+metric_widths = [53,49,41,57,69,67,56,63]
 palette = ['#f4c65b','#78d5c1','#baa7f3','#f6a58f','#96c9f3']
 
 class Gantt(Flowable):
@@ -142,20 +158,17 @@ for i,e in enumerate(data['examples'],1):
 story.append(PageBreak())
 add('4. Additional test workloads', 'Heading1')
 add('These cases were proposed with AI assistance and checked against explicit scheduling rules. Each provides an expected result in addition to the simulator output. They are available in the workload library; all required invariants are checked separately.')
-extra_expected = {
- 'idle': ('CPU idle before and between arrivals', 'Idle [0,3), X [3,4), Idle [4,7), Y [7,9). For X: T=1,W=0,R=0; for Y: T=2,W=0,R=0. Averages: 1.5,0,0. The schedule is the same for all four policies at q=2.'),
- 'ties': ('Simultaneous arrivals and a scheduling tie', 'Z [0,1), A [1,2). For Z: T=1,W=0,R=0; for A: T=2,W=1,R=1. Averages: 1.5,0.5,0.5. Input order wins, not alphabetical process ID. All four policies produce this schedule at q=2.'),
- 'preemption': ('SRTF interrupts a longer remaining job', 'L [0,1), S [1,2), L [2,6). For L: T=6,W=1,R=0; for S: T=1,W=0,R=0. Averages: 3.5,0.5,0. At t=1, S=1 is strictly shorter than L remaining=4.'),
-}
 for i,e in enumerate(data['additional'],1):
-    title, expected = extra_expected[e['id']]
-    add(f'{i}. {title}', 'Heading2')
+    add(f"{i}. {e['name']}", 'Heading2')
     add('Inputs in list order: '+', '.join(f"{x['id']}(arrival={x['arrival']}, burst={x['burst']})" for x in e['processes'])+'.')
-    add('<b>Expected:</b> '+expected)
-    r=e['result']; add(f"<b>Observed:</b> {r['algorithm']} matches the expected intervals and per-process metrics. Observed averages T/W/R: {fmt(r['averages']['turnaround'])} / {fmt(r['averages']['waiting'])} / {fmt(r['averages']['response'])}.")
+    expected = e['expected']
+    chart = ', '.join(f"{s['processId'] or 'Idle'} [{s['start']},{s['end']})" for s in expected['segments'])
+    add('<b>Independent expected timeline:</b> '+chart+'.')
+    table(metric_head, metric_rows(expected['processes']), metric_widths)
+    av = expected['averages']
+    r=e['result']; add(f"<b>Verified:</b> {r['algorithm']} intervals and per-process metrics match. Expected and observed averages T/W/R: {fmt(av['turnaround'])} / {fmt(av['waiting'])} / {fmt(av['response'])}.")
 add('Invariant and boundary checks', 'Heading2')
-add('A fixed-seed suite creates 100 workloads and runs every algorithm. It checks exactly the requested burst per process; no execution before arrival; a contiguous, non-overlapping single-CPU timeline; nonnegative waiting and response; and no idle interval while an unfinished process is ready. These properties complement, rather than replace, the independent schedule expectations.')
-add('Targeted tests also cover equal remaining times in SRTF, RR boundary-arrival ordering, preserved consecutive RR slices, completed processes not returning, first start at t=0, input-order ties, and invalid/duplicate input. The additional q=1 and q=4 tests use independently traced expectations.')
+add('Across 100 fixed-seed workloads and all four policies, tests check burst conservation, arrival bounds, a contiguous non-overlapping timeline, nonnegative metrics and no idle CPU while work is ready. Targeted cases cover SRTF equality, RR boundary ordering and separate slices, completed jobs, first start at zero, input-order ties and invalid input. Independent q=1/q=4 references supplement these invariants.')
 
 story.append(PageBreak())
 add('5. Analysis', 'Heading1')
@@ -181,9 +194,9 @@ add('Implementation and limitations', 'Heading2')
 add('The pure TypeScript scheduling motor is separate from React. It jumps to the next arrival, completion or quantum boundary, records each decision, and derives metrics from first start and completion. Original burst values are preserved separately from remaining work. The interface derives results from current inputs, clearing results on invalid input. Named workloads and theme preferences use optional browser storage; no backend or login is needed.')
 add('Limits: at most 64 processes, 24 characters per process ID, integer times up to 1,000,000, maximum arrival plus total burst up to 1,000,000, and at most 2,000 RR slices. At most 12 named workloads are retained in a browser. Very small chart labels may be hidden in Fit mode; zoom, accessible button names and decision details retain the exact interval information.')
 add('Validation evidence', 'Heading2')
-add('Local verification on Windows / Microsoft Edge: 47 unit tests and 36 Playwright end-to-end tests passed, together with TypeScript checking and a Vite production build. Browser checks include automatic recomputation, invalid inputs, comparisons/exports, highlighting, proportional zoom, themes, saved-workload recovery, the first-use guide, CPU rail and Process lanes, Rules keyboard behavior, bundled font loading and widths from 320 to 2560 px. The exporter separately checks all eight prior hand calculations. Deployment availability and macOS/Linux execution are not established by these local tests.')
+add('Unit tests cover independent references and invariants; Playwright checks user flows, metric sorting, keyboard access and responsive layouts. The exporter asserts eight prior hand calculations and three additional references before printing a match. Current test counts, build results and OS evidence are recorded in docs/roadmap.md. Deployment availability requires a separate live check.')
 add('AI-use statement', 'Heading2')
-add('Codex assisted with reading the assignment, tutoring and checking the student\'s manual metric calculations, implementing the React/TypeScript application, tests, and report draft. Claude Code CLI was used for design advice with the frontend-design skill; it was not given file-editing tools in these consultations. The generated implementation was checked against the prior hand calculations, targeted edge cases, invariants and browser tests.')
+add('Codex assisted with assignment review, tutoring, checking the student\'s manual calculations, implementation, tests and this draft. Claude Code CLI provided design advice and a code review. Selected Decision Inspector and queue ideas were adapted from a Stitch prototype; its fixed data and script were not used as the engine. Prior hand calculations, independent references, invariants and browser tests verify the implementation.')
 add('Corrections to AI suggestions: an earlier design brief used an idle interval of 5-8 for Workload B; the correct interval is 6-8 because the early jobs finish at t=6. A later design suggestion used process ID for tie-breaking; the assignment requires arrival followed by input-list order. Both suggestions were rejected. Student review and the ability to trace an unfamiliar workload remain necessary before submission.')
 add('Sources and reproducibility', 'Heading2')
 add('Requirements: <link href="https://mehmetgokturk.com/cse513/materials/assignment01/CSE513-Assignment-1.pdf" color="#244bd8">official CSE513 Assignment 1 PDF</link>. Code, README and test sources: the repository linked on page 1. Independent reference calculations: docs/hand-calculations.md. Additional cases: docs/additional-tests.md. Run pnpm install --frozen-lockfile, pnpm test, pnpm build, and pnpm test:e2e as described in the README.', 'SmallReport')

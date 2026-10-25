@@ -52,3 +52,23 @@ The motor, unfamiliar workload tracing, RR q=1/2/4 analysis and final report nee
 The additional q=1/q=4 expectations were independently traced with AI assistance and then tested;
 the student is not claimed to have already completed those extra calculations alone.
 No scheduling bug that did not occur is described as a personal debugging experience.
+
+## Stitch design reference
+
+The student supplied a Stitch-generated HTML prototype and screenshot. Only the separate Decision
+Inspector card and queue presentation were selected for adaptation. The generated prototype used
+fixed Workload A / RR data; those data and its script were not adopted as the scheduling engine.
+The implementation continues to read decisions from the tested simulator. FIFO arrows are used
+only for RR; other policies show candidate sets, with selection highlighted explicitly.
+Mobile and both-theme rendering and queue/outcome behavior were checked with Playwright.
+
+## Claude code review and follow-up
+
+Claude reviewed commit `5f96f6f`. Its cached-width/cursor finding was reproduced with delayed
+ResizeObserver delivery, fixed and verified on Windows, macOS and Ubuntu in commit `127ac66`.
+The browser assertion was also made atomic to avoid comparing rectangles from different frames.
+The subsequent revision gives disabled tooltip triggers explicit button/disabled semantics, centralizes
+the lane gutter dimensions, removes OS-installed font dependencies from PDF generation, and rejects
+missing or mismatched report data. Three additional report examples now have independent expected
+intervals and metrics which the exporter asserts before reporting a match. Negative tests confirm
+that changed inputs or incorrect results cannot silently pass those checks.

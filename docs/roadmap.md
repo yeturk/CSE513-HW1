@@ -23,8 +23,8 @@
 - [ ] Student can explain the motor and trace an unfamiliar workload independently.
 - [ ] Student reviews RR q=1/2/4 analysis, additional cases, six report answers and the AI statement.
 - [ ] Student approves the final design and report text.
-- [x] Latest changes are included in the authorized local dev commit.
-- [ ] A new push and publication are explicitly authorized; neither follows from commit permission.
+- [x] Commit and push of the selected Inspector, screenshot requests and review fixes are authorized.
+- [ ] Website publication is approved separately; a source push does not deploy it.
 - [ ] Current commit passes the configured Windows/macOS/Ubuntu CI matrix.
 - [ ] A working public website is deployed and tested without signing in.
 - [ ] Final PDF has the live link directly below the heading and local-only student details.
@@ -65,6 +65,28 @@ The old implementation failed the regression; the correction passed both cursor 
 times each. Full Windows Chromium verification then passed all 47 unit tests, 37 browser tests,
 TypeScript checking and the production build. This demonstrates the delayed-measurement fix,
 but does not yet establish that it resolves the original macOS CI failure. A new macOS run is required.
+
+The subsequent [CI run for `127ac66`](https://github.com/yeturk/CSE513-HW1/actions/runs/40200045316)
+completed successfully on Windows, macOS and Ubuntu. The macOS log confirms 47 unit tests and 37
+browser tests passed, including the original failing cursor scenario and the new regression.
+
+The student then selected only the Decision Inspector and queue presentation from the Stitch
+reference. These local changes separate the inspector into a card with interval, selection rationale
+and boundary outcome sections. RR uses FIFO arrows; other algorithms show ready candidates without
+FIFO arrows. Three new browser scenarios verify RR order/outcomes, idle states, SRTF semantics and
+layout at 320/390/1024/1920 px in both themes. All 40 browser tests and the production build passed
+locally. These visual changes are not yet committed or pushed; the three-OS result above applies
+to the cursor-fix commit, not this subsequent local design revision.
+
+The next revision adds sortable process metrics (descending first, ascending toggle and restore input
+order), a precisely defined zero-cost context-switch count, and the selected Inspector changes.
+It also addresses the remaining Claude review findings: disabled-control semantics, a shared lane
+gutter constant, portable bundled PDF fonts, actionable report-data errors and independently asserted
+additional report references. Local Windows verification passed 56 unit tests, 43 Playwright scenarios,
+TypeScript checking and the production build. The exporter verified all eight prior examples and all
+three additional references. Negative tests reject missing/changed references and mismatched report
+data. The PDF was rendered and inspected. CI now also builds this report on all three operating systems;
+the historical CI result above does not verify these new changes.
 
 The official PDF says the deadline is "To be announced". The instructor's Teams announcement is
 the definitive deadline source; the student reported an approximately eight-hour window on 25 October.

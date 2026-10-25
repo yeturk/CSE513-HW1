@@ -1,6 +1,11 @@
 import { useLayoutEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { Segment, SimulationResult } from '../domain/types';
 import { ControlTooltip } from './ControlTooltip';
+
+const LANE_LABEL_WIDTH = 64;
+const LANE_GAP = 12;
+const LANE_GUTTER = LANE_LABEL_WIDTH + LANE_GAP;
 
 export function colorClass(result: SimulationResult, id: string | null) {
   return id === null ? 'idle-color' : `color-${result.processes.findIndex(p => p.id === id) % 8}`;
@@ -28,7 +33,7 @@ export function Timeline({ result, step, onStep, selectedProcessId, onSelectProc
     // next notification. Use the committed layout for scroll positioning.
     const width = canvasRef.current!.getBoundingClientRect().width;
     if (width !== canvasWidth) setCanvasWidth(width);
-    const gutter = view === 'lanes' ? 76 : 0;
+    const gutter = view === 'lanes' ? LANE_GUTTER : 0;
     const x = gutter + decision.start / result.finishTime * Math.max(0, width - gutter);
     const leftInset = gutter + 40;
     if (zoom === 1) scroll.scrollLeft = 0;
@@ -36,7 +41,7 @@ export function Timeline({ result, step, onStep, selectedProcessId, onSelectProc
       scroll.scrollLeft = Math.max(0, x - leftInset);
     }
   }, [decision.start, result.finishTime, canvasWidth, zoom, view]);
-  const laneGutter = view === 'lanes' ? 76 : 0;
+  const laneGutter = view === 'lanes' ? LANE_GUTTER : 0;
   const trackWidth = Math.max(0, canvasWidth - laneGutter);
   // Keep every boundary mark, but only label times with enough room between them.
   let lastLabelRight = -Infinity;
@@ -61,7 +66,7 @@ export function Timeline({ result, step, onStep, selectedProcessId, onSelectProc
       {pixels >= 28 && <span>{segment.processId ?? 'Idle'}</span>}{pixels >= 60 && view === 'rail' && <small>{segment.end - segment.start}u</small>}
     </button>;
   }
-  return <section className="panel timeline-panel" aria-labelledby="timeline-title">
+  return <><section className="panel timeline-panel" aria-labelledby="timeline-title">
     <div className="panel-heading"><div><h2 id="timeline-title">CPU timeline</h2><p className="section-intro">Select a slice to explore the scheduling decision.</p></div>
       <span className="quiet-badge">{result.finishTime} time units</span></div>
     <div className="timeline-toolbar">
@@ -78,7 +83,7 @@ export function Timeline({ result, step, onStep, selectedProcessId, onSelectProc
       <span className="zoom-hint">{zoom === 1 ? 'Full timeline · zoom for detail' : 'Scroll to explore · proportional time scale'}</span>
     </div>
     <div ref={scrollRef} className="timeline-scroll" tabIndex={0} aria-label="Gantt chart; scroll horizontally if needed">
-      <div ref={canvasRef} className={`timeline-canvas view-${view}`} style={{ width: `${zoom * 100}%` }}>
+      <div ref={canvasRef} className={`timeline-canvas view-${view}`} style={{ width: `${zoom * 100}%`, '--lane-label-width': `${LANE_LABEL_WIDTH}px`, '--lane-gap': `${LANE_GAP}px` } as CSSProperties}>
         {view === 'rail' ? <div className="timeline-bars">{result.segments.map(renderSegment)}</div> : <div className="process-lanes">
           {result.processes.map(p => <div className="process-lane" key={p.id}>
             <button type="button" className="lane-process-label" title={p.id} aria-label={`Highlight lane ${p.id}`} aria-pressed={selectedProcessId === p.id}
@@ -102,24 +107,30 @@ export function Timeline({ result, step, onStep, selectedProcessId, onSelectProc
     <div className="highlight-status"><span>{selectedProcessId ? `Highlighting ${selectedProcessId} across the timeline and metrics.` : 'Select a process label to highlight its slices and metrics.'}</span>
       {selectedProcessId && <button type="button" onClick={() => onSelectProcess(null)}>Clear highlight</button>}</div>
     {result.algorithm === 'RR' && <p className="chart-note">Each block is a CPU slice. Quantum boundaries remain visible even when the same process runs again.</p>}
-    <div className="decision-view">
-      <div className="decision-top"><h3>Explore the decision <span>{step + 1} / {result.decisions.length}</span></h3>
+  </section>
+    <section className="panel decision-view" aria-labelledby="decision-title">
+      <div className="decision-top"><div><h2 id="decision-title">Decision Inspector <span>Step {step + 1} of {result.decisions.length}</span></h2>
+        <p className="section-intro">Follow the choice, the ready processes, and what happens next.</p></div>
         <div className="step-buttons"><ControlTooltip content={step === 0 ? 'This is the first scheduling decision.' : 'Inspect the previous scheduling decision.'}><button type="button" disabled={step === 0} onClick={() => onStep(step - 1)} aria-label="Previous decision">←</button></ControlTooltip>
           <ControlTooltip content={step === result.decisions.length - 1 ? 'This is the last scheduling decision.' : 'Inspect the next scheduling decision and ready queue.'}><button type="button" disabled={step === result.decisions.length - 1} onClick={() => onStep(step + 1)} aria-label="Next decision">→</button></ControlTooltip></div></div>
       <label className="sr-only" htmlFor="decision-step">Decision step</label>
       <input id="decision-step" className="step-range" type="range" min="0" max={result.decisions.length - 1} value={step}
         onChange={e => onStep(Number(e.target.value))} />
       <div className="decision-content" aria-live="polite">
-        <div className="decision-time">t = {decision.start}<small>{decision.start}–{decision.end}</small></div>
-        <div><p className="decision-explanation">{decision.explanation}</p>
-          <p className="queue-label">{result.algorithm === 'RR' ? 'FIFO queue before selection · front on the left' : 'Ready candidates before selection · numbers show remaining time'}</p>
-          <div className="queue-chips">{decision.candidates.length ? decision.candidates.map(p =>
-            <span key={p.id} className={`queue-chip ${colorClass(result, p.id)} ${p.id === decision.processId ? 'running' : ''}`}>
-              {p.id}<b>{p.remaining}</b>{p.id === decision.processId && <span className="sr-only"> selected</span>}
-            </span>) : <span className="muted">The queue is empty</span>}</div>
-          <p className="decision-outcome">{decision.outcome}</p>
+        <div className="decision-interval"><h3>Time interval</h3>
+          <div className="decision-time">t = {decision.start}<small>{decision.start} → {decision.end} · {decision.end - decision.start} {decision.end - decision.start === 1 ? 'unit' : 'units'}</small></div>
+          <span className="decision-selected">{decision.processId !== null && <i className={`process-dot ${colorClass(result, decision.processId)}`} />}{decision.processId === null ? 'CPU idle' : `${decision.processId} selected`}</span>
         </div>
+        <div className="decision-reason"><h3>{decision.processId === null ? 'Why the CPU is idle' : 'Why this process?'}</h3><p className="decision-explanation">{decision.explanation}</p>
+          <p className="queue-label">{result.algorithm === 'RR' ? 'FIFO ready queue · front → tail' : 'Ready candidates · before selection'}</p>
+          <p className="queue-units">Numbers show remaining CPU time in units.</p>
+          {decision.candidates.length ? <ol className="queue-chips" aria-label={result.algorithm === 'RR' ? 'Ready queue before dispatch' : 'Ready candidates before selection'}>{decision.candidates.map((p, index) =>
+            <li className="queue-item" key={p.id}><span aria-label={`${p.id}: ${p.remaining} units remaining${p.id === decision.processId ? ', selected' : ''}`} className={`queue-chip ${colorClass(result, p.id)} ${p.id === decision.processId ? 'running' : ''}`}>
+              {p.id}<b>{p.remaining}</b>{p.id === decision.processId && <span className="sr-only"> selected</span>}
+            </span>{result.algorithm === 'RR' && index < decision.candidates.length - 1 && <span className="queue-arrow" aria-hidden="true">→</span>}</li>
+          )}</ol> : <p className="queue-empty">No ready processes.</p>}
+        </div>
+        <div className="decision-boundary"><h3>At t = {decision.end}</h3><p className="decision-outcome">{decision.outcome}</p></div>
       </div>
-    </div>
-  </section>;
+    </section></>;
 }
