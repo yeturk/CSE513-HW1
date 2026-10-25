@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/
+.env
+.env.*
+!.env.example
+*.local
+.DS_Store
+Thumbs.db
+# Course materials stay local; link to the instructor's originals in README.
+/Slides/
+/CSE513-Assignment-1.pdf
+/.tools/
