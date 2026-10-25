@@ -75,8 +75,8 @@ reference. These local changes separate the inspector into a card with interval,
 and boundary outcome sections. RR uses FIFO arrows; other algorithms show ready candidates without
 FIFO arrows. Three new browser scenarios verify RR order/outcomes, idle states, SRTF semantics and
 layout at 320/390/1024/1920 px in both themes. All 40 browser tests and the production build passed
-locally. These visual changes are not yet committed or pushed; the three-OS result above applies
-to the cursor-fix commit, not this subsequent local design revision.
+locally. At that stage these visual changes were not committed or pushed; the three-OS result above
+applies to the cursor-fix commit, not the subsequent design revision.
 
 The next revision adds sortable process metrics (descending first, ascending toggle and restore input
 order), a precisely defined zero-cost context-switch count, and the selected Inspector changes.
@@ -87,6 +87,11 @@ TypeScript checking and the production build. The exporter verified all eight pr
 three additional references. Negative tests reject missing/changed references and mismatched report
 data. The PDF was rendered and inspected. CI now also builds this report on all three operating systems;
 the historical CI result above does not verify these new changes.
+
+The authorized source changes were committed and pushed to dev as `714177b`. The automatically
+triggered [verification run](https://github.com/yeturk/CSE513-HW1/actions/runs/40201756244) checks this
+revision. Check the run conclusion before treating it as cross-platform evidence. Website publication
+remains a separate pending step.
 
 The official PDF says the deadline is "To be announced". The instructor's Teams announcement is
 the definitive deadline source; the student reported an approximately eight-hour window on 25 October.

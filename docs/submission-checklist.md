@@ -66,7 +66,7 @@ ignored by Git. It is not ready for submission until the following gates are sat
 
 - [ ] Student has reviewed the implemented design and report text.
 - [x] Current source, tests and English documentation are included in the local dev commit.
-- [ ] A push has been explicitly authorized and completed.
+- [x] The student authorized commit/push; source changes were pushed to dev as `714177b`.
 - [ ] CI has passed for the current commit; distinguish results for each OS.
 - [ ] Website is published and accessible without signing in.
 - [ ] A/B examples and asset loading are checked at the actual public address.
